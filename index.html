@@ -1224,7 +1224,7 @@ SC.landmark = {
       {label:"Change pace or suppers",fn:()=>E.go("pace")}
     ];
     const right=[
-      {label:"Rest a year",sub:"+ leaders' energy, morale, stamina. Costs a little from the funds.",fn:()=>this.rest()},
+      {label:"Rest a year",sub:"+ leaders' energy, morale, stamina. Costs $.",fn:()=>this.rest()},
       {label:"Stewardship drive"+(driveUsed?" (done here)":""),sub:driveUsed?"Once per stop.":"+ funds and participation. Costs morale.",dim:driveUsed,fn:()=>E.go("drive")}
     ];
     if(lm && lm.fact) right.push({label:"Did you know?",sub:"A true story from the church's history.",fn:()=>E.go("fact",{lines:lm.fact,page:lm.page,paras:true})});
