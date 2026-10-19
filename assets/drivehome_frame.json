@@ -1,0 +1,15 @@
+{
+  "note": "Coordinate frame the drivehome_road.png was generated in. Logical 640x400 (PNG is 2x = 1280x800). Use these to overlay dashes/traffic/bus on Josh's edited image.",
+  "canvasLogical": [640,400],
+  "pngPixels": [1280,800],
+  "junction_O": [373.838,228.5],
+  "DIR": [0.866,-0.5],
+  "PER": [0.5,0.866],
+  "HALF_roadHalfWidth": 118,
+  "approach": {"farCenter_N_fromO": "O + (-DIR)*430", "DIST": 430, "entersFrom": "bottom-left"},
+  "branchDirs": {"left": [-0.259,-0.966], "center": [0.574,-0.819], "right": [0.996,-0.087]},
+  "branchBaseSegments_s": {"left": [-1,-0.40], "center": [-0.28,0.28], "right": [0.40,1]},
+  "branchLength_BL": 640,
+  "hugh": {"at": "O", "scale": 3, "spriteWH": [16,28]},
+  "steerMapping": "u<-0.35 -> left branch (scenic win); |u|<=0.35 -> center (church/homecoming); u>0.35 -> right (scenic win). Confirm with Josh which branches = church."
+}
