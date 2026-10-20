@@ -12,7 +12,7 @@ const E = {
     const cv=G.cv;
     cv.addEventListener("pointerdown",e=>{ e.preventDefault(); const p=this.pt(e); this.idle=0; Sound.unlock(); this.tap(p.x,p.y,e.pointerId); },{passive:false});
     cv.addEventListener("pointermove",e=>{ const p=this.pt(e); if(this.screen&&this.screen.move) this.screen.move(p.x,p.y,e.buttons>0||e.pointerType==="touch"); });
-    cv.addEventListener("pointerup",e=>{ const p=this.pt(e); if(this.screen&&this.screen.up) this.screen.up(p.x,p.y); });
+    cv.addEventListener("pointerup",e=>{ Sound.unlock(); const p=this.pt(e); if(this.screen&&this.screen.up) this.screen.up(p.x,p.y); });
     cv.addEventListener("pointercancel",e=>{ if(this.screen&&this.screen.up) this.screen.up(-1,-1); });
     window.addEventListener("keydown",e=>{ this.idle=0; if(this.screen&&this.screen.key) this.screen.key(e.key,e); if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key)) e.preventDefault(); });
     window.addEventListener("keyup",e=>{ if(this.screen&&this.screen.keyup) this.screen.keyup(e.key,e); });
@@ -24,18 +24,23 @@ const E = {
     const r=G.cv.getBoundingClientRect(); this.offX=r.left; this.offY=r.top;
   },
   pt(e){ const r=G.cv.getBoundingClientRect(); return { x:(e.clientX-r.left)/this.scale, y:(e.clientY-r.top)/this.scale }; },
-  go(name,arg){ const s=this.screens[name]; if(!s) throw new Error("no screen "+name); this.hot=[]; this.screen=s; this.screenName=name; this.idle=0; if(s.enter) s.enter(arg); },
+  now(){ return typeof performance!=="undefined"?performance.now():Date.now(); },
+  lock(ms){ this.lockUntil=this.now()+(ms||300); },
+  go(name,arg){ const s=this.screens[name]; if(!s) throw new Error("no screen "+name); this.hot=[]; this.screen=s; this.screenName=name; this.idle=0; this.lock(); if(s.enter) s.enter(arg); },
   loop(t){ const dt=Math.min(0.1,(t-this.last)/1000||0); this.last=t; this.idle+=dt*1000;
     if(this.screen){ if(this.screen.update) this.screen.update(dt); this.hot=[]; this.screen.draw(dt); }
     if(this.screenName==="title" && this.idle>KIOSK_ATTRACT_MS) this.go("attract");
-    else if(this.screenName!=="title" && this.screenName!=="attract" && this.screenName!=="leaderboard" && this.idle>KIOSK_RESET_MS) this.go("title");
+    else if(this.screenName!=="title" && this.screenName!=="attract" && this.screenName!=="leaderboard" && this.idle>KIOSK_RESET_MS){
+      if(S && !S.over && !S.reached2026 && !S._endLogged){ S._endLogged=true; track("session_end",endRow("abandoned")); }
+      this.go("title"); }
     requestAnimationFrame(t2=>this.loop(t2)); },
   // hot zones: registered during draw, consumed on tap
   zone(x,y,w,h,fn,key){ this.hot.push({x,y,w,h,fn,key}); },
   tap(x,y,id){
     // hidden debug gesture: 5 quick taps in the top-right corner opens the playtest menu
-    const now=(typeof performance!=="undefined"?performance.now():Date.now());
-    if(x>=600&&y<=22){ if(now-(this._dbgT||0)>1500) this._dbgN=0; this._dbgT=now; this._dbgN=(this._dbgN||0)+1; if(this._dbgN>=5){ this._dbgN=0; this.go("debug"); return; } } else { this._dbgN=0; }
+    const now=this.now();
+    if(this.screenName==="title"&&x>=600&&y<=22){ if(now-(this._dbgT||0)>1500) this._dbgN=0; this._dbgT=now; this._dbgN=(this._dbgN||0)+1; if(this._dbgN>=5){ this._dbgN=0; this.go("debug"); return; } } else { this._dbgN=0; }
+    if(now<(this.lockUntil||0)) return;
     if(this.screen&&this.screen.tap&&this.screen.tap(x,y,id)===true) return; for(const z of this.hot){ if(x>=z.x&&x<z.x+z.w&&y>=z.y&&y<z.y+z.h){ Sound.click(); z.fn(); return; } } },
   keyMenu(k){ for(const z of this.hot){ if(z.key!=null && String(z.key)===k){ Sound.click(); z.fn(); return true; } } return false; },
 
@@ -77,7 +82,7 @@ function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
 // ----- SOUND (WebAudio) -----
 const Sound = {
   ctx:null, level:0, levels:[0,0.08,0.25], hymnTimer:null,
-  unlock(){ const fresh=!this.ctx; if(!this.ctx){ try{ this.ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(this.ctx&&this.ctx.state==="suspended") this.ctx.resume();
+  unlock(){ const fresh=!this.ctx; if(!this.ctx){ try{ this.ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(this.ctx&&this.ctx.state!=="running"){ try{ this.ctx.resume(); }catch(e){} }
     if(fresh && this.musicOn){ if(this.musicTimer) clearTimeout(this.musicTimer); this._killMusic(); this._musicStep(); } },
   cycle(){ this.level=(this.level+1)%3; try{ localStorage.setItem("mpt_sound",String(this.level)); }catch(e){} if(this.level) this.beep(880,0.05); else this._killMusic();
     if(this.level && this.musicOn){ if(this.musicTimer) clearTimeout(this.musicTimer); this._killMusic(); this._musicStep(); } },
@@ -108,8 +113,8 @@ const Sound = {
 
 // ----- STORAGE -----
 const Store = {
-  scores(){ try{ const s=JSON.parse(localStorage.getItem("mpt_scores")||"null"); if(Array.isArray(s)&&s.length) return s; }catch(e){} return DATA.seedScores.map(([n,v])=>({n,v,p:""})); },
-  addScore(n,v,p){ const s=this.scores(); s.push({n,v,p}); s.sort((a,b)=>b.v-a.v); const top=s.slice(0,10); try{ localStorage.setItem("mpt_scores",JSON.stringify(top)); }catch(e){} return top.findIndex(x=>x.n===n&&x.v===v); },
+  scores(){ try{ const s=JSON.parse(localStorage.getItem("mpt_scores")||"null"); if(Array.isArray(s)){ const ok=s.filter(x=>x&&typeof x.v==="number"&&typeof x.n==="string"); if(ok.length) return ok; } }catch(e){} return DATA.seedScores.map(([n,v])=>({n,v,p:""})); },
+  addScore(n,v,p){ const s=this.scores(), me={n,v,p}; s.push(me); s.sort((a,b)=>b.v-a.v); const top=s.slice(0,10); try{ localStorage.setItem("mpt_scores",JSON.stringify(top)); }catch(e){} return top.indexOf(me); },
   resetScores(){ try{ localStorage.removeItem("mpt_scores"); }catch(e){} },
   stat(key,inc){ try{ const k="mpt_"+key; const v=(parseInt(localStorage.getItem(k)||"0")||0)+(inc||1); localStorage.setItem(k,String(v)); return v; }catch(e){ return 0; } }
 };
@@ -124,4 +129,4 @@ const Log = {
   flush(){ if(this.busy||!this.queue.length||!DATA.config||!DATA.config.sheetUrl||(typeof navigator!=="undefined"&&navigator.onLine===false)) return; const batch=this.queue.slice(0,50); this.busy=true;
     fetch(DATA.config.sheetUrl,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify(batch)}).then(()=>{ this.queue=this.queue.slice(batch.length); this.save(); this.busy=false; if(this.queue.length) setTimeout(()=>this.flush(),500); }).catch(()=>{ this.busy=false; }); }
 };
-function track(ev,params){ try{ Log.send(ev,params); }catch(e){} }
+function track(ev,params){ try{ if(typeof S!=="undefined"&&S&&S.debug) return; Log.send(ev,params); }catch(e){} }

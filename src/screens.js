@@ -3,6 +3,7 @@
 // ============================================================
 let S = null;
 let CALVIN_UNLOCKED = false;
+let CLIFFORD_UNLOCKED = false;   // the current pastor is a "?" until a visitor finishes (or loses) one game; re-hidden on attract
 
 function newGame(pastor, trailLen){
   const lm = DATA.trail.filter(t => trailLen==="long" || t.short);
@@ -13,7 +14,7 @@ function newGame(pastor, trailLen){
     rider: pastor.rider||null, riderUsed:false,
     pace:"ordinary", rations:"potluck",
     used:new Set(), cash:0, borrowed:0, debtYears:0,
-    driveLandmark:-1, drivesDecade:{}, hymnDecade:{}, boilerDone:false, moderatorDone:false,
+    driveLandmark:-1, restLandmark:-1, drivesDecade:{}, hymnDecade:{}, boilerDone:false, moderatorDone:false, presbyDone:{},
     eventsSeen:0, log:[], sinceEvent:9, startedAt:Date.now(), reached2026:false, over:null, travelOff:0
   };
   S.budgetDollars = function(){ return this.budget*lerpAnchors(DATA.budgetAnchors,this.year); };
@@ -38,8 +39,20 @@ function applyFx(fx, ctx){
 }
 
 // ---- yearly simulation ----
-function paceMods(){ return { sabbath:{aim:0.90,part:1,stam:1.5,energy:2,morale:1,cost:0}, ordinary:{aim:1.00,part:-1,stam:-0.5,energy:-0.7,morale:0,cost:0}, growth:{aim:1.13,part:-3,stam:-2,energy:-3,morale:-1,cost:0.02} }[S.pace]; }
-function rationMods(){ return { catered:{budget:-0.015,morale:2}, potluck:{budget:0,morale:0}, coffee:{budget:0.01,morale:-2} }[S.rations]; }
+// aim = member target vs history; ptgt/mtgt = the participation/morale the church drifts toward;
+// drain = pastor stamina lost per year (scaled by the Stamina stat); energy = leaders per year; drive = pledge-card value
+function paceMods(){ return {
+  sabbath: {aim:0.90, ptgt:60, mtgt:72, drain:0.20, energy:-0.3, cost:0,     drive:1.0},
+  ordinary:{aim:1.00, ptgt:50, mtgt:62, drain:0.50, energy:-0.8, cost:0,     drive:1.0},
+  growth:  {aim:1.15, ptgt:42, mtgt:52, drain:1.00, energy:-1.6, cost:0.005, drive:1.35} }[S.pace]; }
+function rationMods(){ return {
+  catered:{budget:-0.003, morale:14,  part:0,  drain:-0.15},
+  potluck:{budget:0,      morale:0,   part:6,  drain:0},
+  coffee: {budget:0.010,  morale:-18, part:-4, drain:0.10} }[S.rations]; }
+// a typical year's giving, as a fraction of a healthy year's reserves (expenses are 0.05). The long trail has more
+// stops to hold drives at, so it gives a little less.
+const GIVE_BASE={short:0.049,long:0.044};
+function stamMult(){ return clamp(1.6-0.1*S.pastor.s,0.6,1.5); }   // Stamina stat 2 -> x1.4, 4 -> x1.2, 7 -> x0.9, 10 -> x0.6
 function advanceYear(){
   const pm=paceMods(), rm=rationMods(); S.year++; if(S.year>2026)S.year=2026;
   const curAnchor = lerpAnchors(DATA.memberAnchors,S.year), prevAnchor = lerpAnchors(DATA.memberAnchors,S.year-1);
@@ -48,19 +61,20 @@ function advanceYear(){
   let rate = (curAnchor/prevAnchor - 1) + (curAnchor*pm.aim - S.members)/S.members*0.30;
   if(S.morale<40) rate-=0.01; if(S.morale>80) rate+=0.002; if(S.part<20) rate-=0.02;
   S.members = Math.max(0, S.members*(1+rate));
-  const giving = 0.05*(0.5+0.5*S.part/50)*(0.6+0.4*S.morale/70); const expenses = 0.05 + pm.cost + (S.debtYears>0?0.02:0);
+  // giving scales with the size of the roll vs history, so Members matter and Growth pays
+  const giving = GIVE_BASE[S.trailLen]*(0.5+0.5*S.part/50)*(0.6+0.4*S.morale/70)*(S.members/curAnchor); const expenses = 0.05 + pm.cost + (S.debtYears>0?0.02:0);
   S.budget += giving - expenses + rm.budget; if(S.debtYears>0) S.debtYears--;
   if(S.budget>1.5){ S.budget=1.5; S.morale=clamp(S.morale+1,0,100); }
   S.negYears = S.budget<0 ? (S.negYears||0)+1 : 0;
-  if(S.part<50) S.part+=1;
-  S.morale += (S.morale<60?1:-0.5) + pm.morale + rm.morale; S.morale=clamp(S.morale,0,100);
-  S.part = clamp(S.part+pm.part,0,100);
-  const sdrain = pm.stam<0 ? pm.stam*(1+(7-Math.min(7,S.pastor.s))*0.15) : pm.stam; S.stam=clamp(S.stam+sdrain,0,100);
+  S.morale = clamp(S.morale + (pm.mtgt+rm.morale-S.morale)*0.08, 0, 100);
+  S.part   = clamp(S.part   + (pm.ptgt+rm.part-S.part)*0.06, 0, 100);
+  // the pastor always gets a little more tired: pace sets how fast, the Stamina stat scales it, catered suppers help
+  S.stam = clamp(S.stam - Math.max(0.1, pm.drain*stamMult()+rm.drain), 0, 100);
   S.party.forEach(p=>{ if(p.gone) return; p.energy=clamp(p.energy+(pm.energy<0?pm.energy*p.k:pm.energy),0,100);
     if(!p.ailment && p.energy<45 && Math.random()<0.08){ p.ailment=pick(DATA.ailments); S.log.push(p.name+" has "+p.ailment+"."); }
     if(p.ailment && p.energy>60 && Math.random()<0.4){ S.log.push(p.name+" recovered from "+p.ailment+"."); p.ailment=null; }
     if(p.ailment) p.energy=clamp(p.energy-1.5,0,100);
-    if(p.energy<=0){ p.gone=true; p.ailment=null; S.log.push(p.name+" "+pick(DATA.departures)); if(S.pastor.id!=="croft") S.members*=0.98; } });
+    if(p.energy<=0){ p.gone=true; p.ailment=null; S.log.push(p.name+" "+pick(DATA.departures)); if(S.pastor.id!=="croft") S.members*=0.95; } });
   if(S.pastor.id==="jones" && Math.random()<0.06){ const d=(rnd(7)-3)/100; S.budget+=d; S.log.push("Session voted something while you were away. Funds "+(d>=0?"+":"")+Math.round(d*100)+"%."); }
   checkOver();
 }
@@ -82,19 +96,25 @@ function pickEvent(){
   if(!pool.length) return null; const e=pick(pool); S.used.add(DATA.events.indexOf(e)); return e;
 }
 // events tied to a real year fire reliably, on that year (history should not be skipped)
-function dueSpecific(){ const s=DATA.events.filter((e,i)=>!S.used.has(i) && typeof e.y==="number" && e.y===S.year); if(!s.length) return null; const e=pick(s); S.used.add(DATA.events.indexOf(e)); return e; }
+// (a landmark arrival or the calm stretch can swallow an event's exact year, so overdue ones still fire, up to 6 years late, oldest first)
+// The short trail can't fit every dated event, so key:true events (data.js) jump the queue.
+// HIST_LATE: how many years late an ordinary dated event may still fire (the short trail keeps to exact years so it stays ~6 minutes)
+const HIST_LATE={short:0,long:2}, HIST_LATE_KEY=12, PRESBY_LATE={short:1,long:2};
+function dueSpecific(){ const s=DATA.events.filter((e,i)=>!S.used.has(i) && typeof e.y==="number" && e.y<=S.year && e.y>=S.year-(e.key?HIST_LATE_KEY:HIST_LATE[S.trailLen])); if(!s.length) return null; s.sort((a,b)=>((b.key?1:0)-(a.key?1:0))||(a.y-b.y)); const e=s[0]; S.used.add(DATA.events.indexOf(e)); return e; }
 // ambient / colour events: only sometimes, and only when the pacing allows
 function pickAmbient(){ const long=S.trailLen==="long"; const rate=long?0.11:0.07; if(Math.random()>rate) return null; const pool=DATA.events.filter((e,i)=>!S.used.has(i) && (e.y==="any" || (Array.isArray(e.y)&&S.year>=e.y[0]&&S.year<=e.y[1]))); if(!pool.length) return null; const e=pick(pool); S.used.add(DATA.events.indexOf(e)); return e; }
 function endRow(outcome){ const sc=score().total; return { session:S.session, pastor:S.pastor.id, trail:S.trailLen, outcome, year:S.year, score:sc, members:Math.round(S.members), budget_pct:Math.round(S.budget*100), morale:Math.round(S.morale), participation:Math.round(S.part), stamina:Math.round(S.stam), party_aboard:partyAlive().length, drives:S.drives||0, cash_campaigns:S.cash, borrowed:S.borrowed, events_seen:S.eventsSeen, minutes:Math.round((Date.now()-S.startedAt)/6000)/10 }; }
 function score(){
   const s=S; const cashN=s.cash, borN=s.borrowed;
-  let pts = s.members/10 + s.budget*950 + s.morale*5 + s.part*2 + partyAlive().length*300 + cashN*500 + borN*200 + (s.reached2026?1000:0);
-  return { total:Math.round(Math.max(0,pts)), parts:[["Members",Math.round(s.members/10)],["Funds (2026 $)",Math.round(s.budget*950)],["Morale",s.morale*5],["Participation",Math.round(s.part*2)],["Leaders aboard",partyAlive().length*300],["Campaigns paid in cash",cashN*500],["Campaigns borrowed",borN*200],["Reached 2026",s.reached2026?1000:0]] };
+  const parts=[["Members",Math.round(s.members/5)],["Funds",Math.round(s.budget*950)],["Morale",Math.round(s.morale*5)],["Participation",Math.round(s.part*2)],["Leaders aboard",partyAlive().length*300],["Campaigns paid in cash",cashN*500],["Campaigns borrowed",borN*200],["Reached 2026",s.reached2026?1000:0]];
+  const raw=Math.max(0,parts.reduce((a,p)=>a+p[1],0)), mult=s.pastor.mult==null?1:s.pastor.mult;
+  return { total:Math.round(raw*mult), raw, mult, parts };
 }
 // a low-stat nudge for the landmark screen, or null
 function lowHint(){
   if(S.budget<0.45) return { stat:"Funds", act:"Hold a stewardship drive to bring in pledges." };
   if(S.stam<35) return { stat:"Stamina", act:"Rest a year to recover before you run out." };
+  if(partyAlive().some(p=>p.energy<30)) return { stat:"Leaders' energy", act:"Rest a year so your leaders can recover." };
   if(S.morale<35) return { stat:"Morale", act:"Rest a year, or try catered suppers." };
   if(S.part<25) return { stat:"Participation", act:"A stewardship drive lifts participation too." };
   return null;
@@ -131,7 +151,7 @@ SC.title = {
   key(k){ E.keyMenu(k); }
 };
 SC.attract = {
-  t:0, enter(){ this.t=0; },
+  t:0, enter(){ this.t=0; CALVIN_UNLOCKED=false; CLIFFORD_UNLOCKED=false; },
   draw(dt){ this.t+=dt; drawTitleArt(this.t);
     G.panel(40,28,440,52); G.ctext(DATA.title,260,42,C.TITLE,T.XL);
     const sc=Store.scores(); G.box2(60,104,400,234,C.PANEL,C.FRAME); G.ctext("THE TOP TEN",260,116,C.TITLE,T.M);
@@ -143,8 +163,8 @@ SC.attract = {
 };
 SC.about = {
   draw(){ G.clear(C.BG); G.box2(24,24,592,352,C.PANEL,C.FRAME); G.ctext("ABOUT THE TRAIL",320,40,C.TITLE,T.L);
-    let y=74; const x=48, w=544; const a=DATA.about||[];
-    a.forEach((para,i)=>{ y=G.para(para,x,y,i===a.length-1?C.DIM:C.TEXT,T.M,w)+8; });
+    let y=64; const x=48, w=544; const a=DATA.about||[];
+    a.forEach((para,i)=>{ y=G.para(para,x,y,i===a.length-1?C.DIM:C.TEXT,T.M,w)+6; });
     E.pressBar("Tap to return",()=>E.go("title")); },
   key(k){ E.keyMenu(k); }
 };
@@ -160,9 +180,12 @@ SC.leaderboard = {
 
 // ---- pastor select ----
 SC.select = {
-  draw(){ G.clear(C.BG); G.ctext("CHOOSE YOUR PASTOR",320,16,C.TITLE,T.XL);
+  draw(){ G.clear(C.BG); G.ctext("CHOOSE YOUR PASTOR",320,8,C.TITLE,T.XL);
     const list=DATA.pastors.filter(p=>!p.secret||CALVIN_UNLOCKED);
+    G.ctext("Your pick leads the church for all 100 years.",320,39,C.DIM,T.S);
     list.forEach((p,i)=>{ const col=i%2, row=Math.floor(i/2); const x=24+col*300, y=52+row*62; G.rect(x,y,290,56,C.MENU); G.frame(x,y,290,56,C.FRAME,1);
+      if(p.id==="clifford" && !CLIFFORD_UNLOCKED){ G.rect(x+6,y+4,48,48,C.PANEL); G.frame(x+6,y+4,48,48,C.GOLD_PALE,1); G.ctext("?",x+30,y+18,C.TITLE,T.XL);
+        G.text("???",x+66,y+10,C.TEXT,T.M); G.text("Play once to unlock",x+66,y+32,C.GOLD_PALE,T.M); E.zone(x,y,290,56,()=>Sound.beep(200,0.08),i<9?String(i+1):null); return; }
       G.draw(portrait(p.id),x+6,y+2,1.5); G.text(p.name,x+66,y+10,p.secret?C.RESULT:C.TEXT,T.M); G.text(p.years,x+66,y+32,C.GOLD_PALE,T.M);
       E.zone(x,y,290,56,()=>E.go("card",p),i<9?String(i+1):null); });
     E.button("Back",520,368,100,26,()=>E.go("title"),"Escape",C.STONE); },
@@ -189,8 +212,8 @@ SC.length = {
   key(k){ E.keyMenu(k); }
 };
 SC.outfit = {
-  draw(){ G.clear(C.BG); E.statusBar(); G.box2(10,32,620,358,C.PANEL,C.FRAME); G.ctext("BEFORE YOU LEAVE QUEENS",320,46,C.TITLE,T.L);
-    G.para("The church has "+Math.round(S.members)+" members, funds of about $"+fmtMoney(S.budgetDollars())+", and a mini-bus. Set your pace and your suppers, then start.",30,74,C.TEXT,T.M,580);
+  draw(){ G.clear(C.BG); E.statusBar(); G.box2(10,32,620,358,C.PANEL,C.FRAME); G.ctext("BEFORE YOU LEAVE QUEENS COLLEGE",320,46,C.TITLE,T.L);
+    G.para("The church has "+Math.round(S.members)+" members and about $"+fmtMoney(S.budgetDollars())+". Reach 2026 before Funds, Members, Morale or your Stamina run out.",30,74,C.TEXT,T.M,580);
     G.text("Pace",30,118,C.RESULT,T.M);
     E.menu([
       {label:"Sabbath",sub:"Membership and participation grow slowly, stamina and morale deplete more slowly.",selected:S.pace==="sabbath",fn:()=>S.pace="sabbath"},
@@ -218,7 +241,7 @@ SC.travel = {
     // ~2x the old timings so each leg is a visibly longer stretch of road between stops
     const base=S.trailLen==="long"?0.90:0.64, minSeg=S.trailLen==="long"?11:9, pyMax=S.trailLen==="long"?6.4:5.2;
     return clamp(minSeg/span, base, pyMax); },
-  update(dt){ if(S.over) return; const perYear=this.perYear||this.segPace(); this.acc+=dt; if(this.calm>0) this.calm-=dt; S.sinceEvent+=dt; S.travelOff+=dt*120;
+  update(dt){ if(S.over){ E.go("gameover"); return; } const perYear=this.perYear||this.segPace(); this.acc+=dt; if(this.calm>0) this.calm-=dt; S.sinceEvent+=dt; S.travelOff+=dt*120;
     if(this.msgT>0){ this.msgT-=dt; return; }
     if(this.acc>=perYear){ this.acc=0; this.step(); } },
   step(){
@@ -228,23 +251,28 @@ SC.travel = {
     if(S.year>=next.year){ S.li++; E.go(next.type==="cross"?"crossing":(next.type==="end"?"finale":"landmark"), next); return; }
     // breathing room: a calm stretch right after every stop, then spacing between interruptions
     const cool = S.trailLen==="long"?3.5:3.0;
-    if(this.calm>0 || S.sinceEvent<cool) return;
-    // Taylor's year as Moderator
-    if(S.pastor.id==="taylor" && S.year===1983 && !S.moderatorDone){ S.moderatorDone=true; S.sinceEvent=0; E.go("event",{ev:{y:1983,t:["You are elected Moderator of the","reunited church and spend a year","on the road."],fx:{budget:(rnd(21)-10)/100,morale:rnd(21)-10,stam:-2},page:"p.219-231"}}); return; }
-    // events tied to a real year fire on that year
-    const sp=dueSpecific(); if(sp){ S.sinceEvent=0; E.go("event",{ev:sp}); return; }
-    // colour events and notices keep clear of the next milestone
-    if(next.year-S.year<=2) return;
+    if(this.calm>0 || S.sinceEvent<cool || next.year-S.year<=1) return;
+    // the first time funds run low, Session calls a stewardship drive so every player learns how to raise money
+    if(!S.taughtDrive && S.budget<0.45 && S.driveLandmark!==S.li){ S.taughtDrive=true; S.sinceEvent=0; E.go("drive",{back:"travel",forced:true}); return; }
+    const wf=DATA.windfall; if(wf && !S.windfallDone && S.year>=wf.fromYear && S.budget<wf.below){ S.windfallDone=true; S.sinceEvent=0; E.go("event",{ev:wf}); return; }
+    // news about your leaders first (a short notice, not a screen)
     if(S.log.length){ this.msg=S.log.shift(); this.msgT=1.8; S.sinceEvent=0; Sound.bad(); return; }
-    if(DATA.presbyteryYears.includes(S.year)){ S.sinceEvent=0; E.go("presbytery"); return; }
-    const ev=pickAmbient(); if(ev){ if(ev.invented && S.rider && !S.riderUsed){ S.riderUsed=true; this.msg="Jennifer already handled it."; this.msgT=1.8; S.sinceEvent=0; Sound.good(); return; } S.sinceEvent=0; E.go("event",{ev}); }
+    // Presbytery meets in its decade's year, or soon after if history was in the way
+    const py=DATA.presbyteryYears.find(y=>S.year>=y && S.year<=y+PRESBY_LATE[S.trailLen] && !S.presbyDone[y]); if(py && next.year-S.year>2){ S.presbyDone[py]=true; S.sinceEvent=0; E.go("presbytery"); return; }
+    // Taylor's year as Moderator
+    if(S.pastor.id==="taylor" && S.year>=1983 && S.year<=1987 && !S.moderatorDone){ S.moderatorDone=true; S.sinceEvent=0; E.go("event",{ev:{y:1983,t:["You are elected Moderator of the","reunited church and spend a year","on the road."],fx:{budget:(rnd(21)-10)/100,morale:rnd(21)-10,stam:-2},page:"p.219-231"}}); return; }
+    // events tied to a real year fire on (or, if a stop swallowed that year, soon after) that year
+    const sp=dueSpecific(); if(sp){ S.sinceEvent=0; E.go("event",{ev:sp}); return; }
+    // colour events keep clear of the next milestone
+    if(next.year-S.year<=2) return;
+    const ev=pickAmbient(); if(ev){ if(ev.invented && S.rider && !S.riderUsed){ S.riderUsed=true; this.msg="Jennifer quietly handled a crisis."; this.msgT=1.8; S.sinceEvent=0; Sound.good(); return; } S.sinceEvent=0; E.go("event",{ev}); }
   },
   draw(){ drawTravelScene(S.year,S.travelOff,true); G.draw(ART.bus,100,224,2); drawBusRiders(100,224,2);
     E.statusBar();
     G.rect(0,295,640,105,C.PANEL); G.rect(0,295,640,2,C.FRAME);
     const next=S.landmarks[S.li+1]; G.text("Next: "+(next?next.name+" ("+next.year+")":"Centennial Sunday"),12,310,C.TEXT,T.M);
     G.text("Pace: "+paceName(S.pace)+"    Suppers: "+rationName(S.rations),12,330,C.DIM,T.S);
-    G.text("Leaders: "+partyAlive().map(p=>p.name.split(" ")[0]+(p.ailment?"*":"")).join(", "),12,348,C.DIM,T.S);
+    const ill=partyAlive().some(p=>p.ailment); G.text("Leaders: "+partyAlive().map(p=>(p.name.split(" ").find(w=>!/^[A-Z]\.$/.test(w))||p.name)+(p.ailment?"*":"")).join(", ")+(ill?"   (* = unwell)":""),12,348,C.DIM,T.S);
     const hint=lowHint(); if(hint){ const act=hint.act.replace(/\..*/,"."), verb=hint.stat==="Funds"?"are":"is"; G.text(hint.stat+" "+verb+" low. Tap Stop, then "+act.charAt(0).toLowerCase()+act.slice(1),12,368,C.WARN,T.S); }
     if(this.msg){ G.box2(60,180,520,40,C.PANEL,C.TITLE); G.cpara(this.msg,320,192,C.TITLE,T.M,500); }
     E.button("Stop",524,364,104,28,()=>E.go("landmark",{stop:true}),"Escape",C.STONE); },
@@ -253,7 +281,7 @@ SC.travel = {
 
 // ---- landmark / stop menu ----
 SC.landmark = {
-  enter(lm){ this.lm=lm&&lm.stop?null:lm; if(this.lm) Sound.good(); },
+  enter(lm){ if(lm&&lm.stop){ if(!(this.lm&&this.lmGame===S&&this.lmLi===S.li&&this.lmYear===S.year)) this.lm=null; } else { this.lm=lm; this.lmGame=S; this.lmLi=S.li; this.lmYear=S.year; if(lm) Sound.good(); } },
   draw(){ const lm=this.lm; G.clear(C.BG); drawSceneBand(lm); E.statusBar();
     G.rect(0,150,640,250,C.PANEL); G.rect(0,150,640,2,C.FRAME);
     if(lm){ G.text(lm.year+": "+lm.name,12,158,C.TITLE,T.M); G.lines(lm.scene,12,180,C.TEXT,T.M,18); }
@@ -266,26 +294,31 @@ SC.landmark = {
       {label:"Change pace or suppers",fn:()=>E.go("pace")}
     ];
     const right=[
-      {label:"Rest a year",sub:"+ leaders' energy, morale, stamina. Costs $.",fn:()=>this.rest()},
+      {label:"Rest a year"+(S.restLandmark===S.li?" (done here)":""),sub:S.restLandmark===S.li?"Once per stop.":"+ leaders' energy, morale, stamina. Costs $.",dim:S.restLandmark===S.li,fn:()=>this.rest()},
       {label:"Stewardship drive"+(driveUsed?" (done here)":""),sub:driveUsed?"Once per stop.":"+ funds and participation. Costs morale.",dim:driveUsed,fn:()=>E.go("drive")}
     ];
     if(lm && lm.fact) right.push({label:"Did you know?",sub:"A true story from the church's history.",fn:()=>E.go("fact",{lines:lm.fact,page:lm.page,paras:true})});
-    if(S.pastor.id==="fogartie" && !S.hymnDecade[decade()]) right.push({label:"Sing a hymn",sub:"Once a decade. Restores all your leaders.",fn:()=>{ S.hymnDecade[decade()]=true; applyFx({energy:40,morale:5}); Sound.hymn(); E.go("note",{lines:["You sing. All your leaders are","restored. Someone asks for","a second verse."]}); }});
+    if(S.pastor.id==="fogartie" && !S.hymnDecade[decade()]) right.push({label:"Sing a hymn",sub:"Once a decade. Restores all your leaders.",fn:()=>{ S.hymnDecade[decade()]=true; applyFx({energy:100,morale:5}); Sound.hymn(); E.go("note",{lines:["You sing. All your leaders are","restored. Someone asks for","a second verse."]}); }});
     const my=lm?180+lm.scene.length*18+10:210;
     E.menu(left,12,my,300,{rowH:28,numbered:false});
-    E.menu(right,328,my,300,{rowH:40,numbered:false});
+    const rh=right.length>3?Math.min(40,Math.floor((396-my)/right.length)):40;
+    // short rows have no room for the small print
+    E.menu(rh<40?right.map(it=>Object.assign({},it,{sub:null})):right,328,my,300,{rowH:rh,numbered:false});
     // proactive nudge: a building campaign is near and reserves are thin
     const cost=S.pastor.id==="clifford"?0.45:0.40, nx=S.landmarks[S.li+1], nx2=S.landmarks[S.li+2];
     const camp=(nx&&nx.type==="cross")?nx:((nx2&&nx2.type==="cross")?nx2:null);
-    if(camp && S.budget<cost && !driveUsed) G.text("A building campaign is coming in "+camp.year+". A pledge drive now builds reserves.",12,380,C.WARN,T.S);
+    if(camp && S.budget<cost && !driveUsed && my+right.length*rh<=376) G.text("A building campaign is coming in "+camp.year+". A pledge drive now builds reserves.",12,380,C.WARN,T.S);
   },
-  rest(){ advanceYear(); applyFx({energy:25,part:8,morale:2,stam:3,budget:-0.02}); if(S.over){ E.go("gameover"); return; } E.go("note",{lines:["You rest for a year and nothing","breaks. Your leaders recover and","so do you."]}); },
+  rest(){ if(S.restLandmark===S.li) return; S.restLandmark=S.li; advanceYear(); applyFx({energy:20,part:-2,morale:2,budget:-0.03}); S.stam=clamp(S.stam+(S.trailLen==="long"?14:18),0,100); if(S.over){ E.go("gameover"); return; }
+    const nx=S.landmarks[S.li+1], arrive=(nx&&S.year>=nx.year);
+    E.go("note",{lines:["You rest for a year and nothing","breaks. Your leaders recover and","so do you."],next:arrive?"arrive":null}); },
   key(k){ E.keyMenu(k); }
 };
+SC.arrive = { enter(){ const nx=S.landmarks[S.li+1]; if(!nx){ E.go("landmark",{stop:true}); return; } S.li++; E.go(nx.type==="cross"?"crossing":(nx.type==="end"?"finale":"landmark"),nx); }, draw(){} };
 SC.note = { enter(a){ this.a=a; }, draw(){ G.clear(C.BG); E.statusBar(); G.box2(60,110,520,180,C.PANEL,C.FRAME); G.clines(this.a.lines,320,144,C.TEXT,T.M,22); E.pressBar("Tap to continue",()=>E.go(this.a.next||"landmark",{stop:true})); }, key(k){ E.keyMenu(k); } };
 SC.fact = { enter(a){ this.a=a; }, draw(){ G.clear(C.BG); E.statusBar(); G.box2(32,40,576,320,C.PANEL,C.TITLE); G.ctext("DID YOU KNOW?",320,56,C.TITLE,T.L);
     let y=90; if(this.a.paras){ y=G.para(this.a.lines,56,y,C.TEXT,T.M,528,20); } else { y=G.lines(this.a.lines,56,y,C.TEXT,T.M,20); }
-    G.text(this.a.invented?"This one we made up.":("A Legacy of Love, "+(this.a.page||"")),56,330,C.RESULT,T.S);
+    const cite=this.a.invented?"This one we made up.":(this.a.page?"A Legacy of Love, "+this.a.page:""); if(cite) G.text(cite,56,Math.max(330,y+4),C.RESULT,T.S);
     E.pressBar("Tap to continue",()=>E.go(this.a.next||"landmark",{stop:true})); }, key(k){ E.keyMenu(k); } };
 
 SC.supplies = {
@@ -299,7 +332,7 @@ SC.supplies = {
       ["Your stamina",Math.round(S.stam),S.stam/100,G.level(S.stam/100,0.5,0.3)]
     ];
     rows.forEach((r,i)=>{ const y=76+i*22; G.text(r[0],30,y,C.TEXT,T.M); G.rtext(String(r[1]),300,y,C.TEXT,T.M); G.bar(320,y,290,12,r[2],r[3]); });
-    G.text("Your leaders",30,196,C.TITLE,T.M); S.party.forEach((p,i)=>{ const y=218+i*22; G.draw(partyFace(p.name),30,y-2,1); G.text(p.name,52,y,p.gone?C.STONE:C.TEXT,T.M); G.text(p.role,280,y,C.DIM,T.S); if(p.gone) G.rtext("called elsewhere",560,y,C.STONE,T.S); else { G.bar(440,y+1,120,10,p.energy/100,G.level(p.energy/100,0.45,0.25)); if(p.ailment) G.rtext(p.ailment,560,y-10,C.WARN,T.S); } });
+    G.text("Your leaders",30,196,C.TITLE,T.M); S.party.forEach((p,i)=>{ const y=218+i*22; G.draw(partyFace(p.name),30,y-2,1); G.text(p.name,52,y,p.gone?C.DIM:C.TEXT,T.M); G.text(!p.gone&&p.ailment?p.ailment:p.role,240,y,!p.gone&&p.ailment?C.WARN:C.DIM,T.S); if(p.gone) G.rtext("called elsewhere",560,y,C.DIM,T.S); else { G.bar(440,y+1,120,10,p.energy/100,G.level(p.energy/100,0.45,0.25));  } });
     if(S.rider) G.text(S.rider+" (Exec. Director)"+(S.riderUsed?" - has handled it":""),30,218+4*22,C.RESULT,T.S);
     G.text("Campaigns: "+S.cash+" paid in cash, "+S.borrowed+" borrowed",30,340,C.DIM,T.S);
     E.pressBar("Tap to return",()=>E.go("landmark",{stop:true})); },
@@ -311,7 +344,7 @@ SC.map = {
     lms.forEach((lm,i)=>{ const x=x0+(x1-x0)*i/(n-1); const done=i<=S.li; G.rect(x-4,106,8,16,lm.type==="cross"?(done?C.CLAY:C.CLAY_INK):(done?C.TITLE:C.STONE)); if(i%2===0) G.ctext(String(lm.year),x,128,done?C.TEXT:C.STONE,T.S); else G.ctext(String(lm.year),x,92,done?C.TEXT:C.STONE,T.S); });
     const px=x0+(x1-x0)*clamp((S.year-1926)/100,0,1); G.draw(ART.bus,px-24,66,1);
     G.text("You are in "+S.year+".  "+(100-(S.year-1926))+" years to go.",40,166,C.TEXT,T.M);
-    G.text("Clay markers are building projects.",40,190,C.RESULT,T.M);
+    G.text("Red markers are building projects.",40,190,C.RESULT,T.M);
     const next=lms[S.li+1]; if(next) G.lines(["Next stop: "+next.year+", "+next.name],40,220,C.TITLE,T.M);
     E.pressBar("Tap to return",()=>E.go("landmark",{stop:true})); },
   key(k){ E.keyMenu(k); }
@@ -347,18 +380,18 @@ SC.event = {
     if(ev.hugh) G.draw(ART.hugh,540,74,3);
     const ty=y+8;
     if(this.result){ const ry=G.lines(this.result,50,ty,C.RESULT,T.M,20);
-      const items=[{label:"Continue",fn:()=>E.go(this.next)}]; if(ev.fact||ev.invented) items.push({label:"Did you know?",fn:()=>E.go("fact",{lines:ev.fact||ev.t,page:ev.page,invented:ev.invented,paras:!!ev.fact,next:this.next})});
+      const items=[{label:"Continue",fn:()=>E.go(S.over&&this.next==="travel"?"gameover":this.next)}]; if(ev.fact||ev.invented) items.push({label:"Did you know?",fn:()=>E.go("fact",{lines:ev.fact||ev.t,page:ev.page,invented:ev.invented,paras:!!ev.fact,next:this.next})});
       E.menu(items,50,Math.min(ry+6,306),280,{rowH:30}); }
-    else if(ev.choice){ E.menu(ev.choice.map(c=>({label:c.label,fn:()=>{ this.result = c.check? this.resolveCheck(c.check) : applyFx(c.fx,{outreach:true}); if(!this.result.length) this.result=["Noted."]; }})),50,ty,500,{rowH:30}); }
+    else if(ev.choice){ E.menu(ev.choice.map(c=>({label:c.label,fn:()=>{ this.result = c.check? this.resolveCheck(c.check) : applyFx(c.fx,{outreach:true}); if(!this.result.length) this.result=["Noted."]; E.lock(); }})),50,ty,500,{rowH:30}); }
   },
   key(k){ E.keyMenu(k); }
 };
 SC.presbytery = {
-  enter(){ this.trade=pick(DATA.presbytery); this.result=null; },
+  enter(a){ if(a&&a.stop&&this.trade&&this.game===S) return; S.presbyAsked=S.presbyAsked||[]; const fresh=DATA.presbytery.filter(x=>!S.presbyAsked.includes(x)); this.trade=pick(fresh.length?fresh:DATA.presbytery); S.presbyAsked.push(this.trade); this.result=null; this.game=S; },
   draw(){ G.clear(C.BG); E.statusBar(); G.box2(30,42,580,318,C.PANEL,C.RESULT); G.ctext("PRESBYTERY MEETING, "+S.year,320,56,C.RESULT,T.M);
-    G.lines(["The Presbytery is meeting. They","have a request:"],50,88,C.TEXT,T.M,20); G.lines(this.trade.t,50,132,C.TITLE,T.M,20);
-    if(this.result){ G.lines(this.result,50,186,C.RESULT,T.M,20); E.menu([{label:"Continue",fn:()=>E.go("travel")},{label:"What is a Presbytery?",fn:()=>E.go("fact",{lines:DATA.presbyteryFact,page:"",next:"travel"})}],50,264,320,{rowH:30}); }
-    else E.menu([{label:"Agree",fn:()=>{ this.result=applyFx(this.trade.fx); }},{label:"Politely decline",fn:()=>{ this.result=["You decline. They say they'll find","someone else but you can detect","some sass."]; applyFx({stam:-1}); }},{label:"What is a Presbytery?",fn:()=>E.go("fact",{lines:DATA.presbyteryFact,page:"",next:"presbytery"})}],50,186,320,{rowH:30}); },
+    G.lines(["The Presbytery is meeting. They","have a request:"],50,88,C.TEXT,T.M,20); const ty=G.lines(this.trade.t,50,132,C.TITLE,T.M,20)+10;
+    if(this.result){ const ry=G.lines(this.result,50,ty,C.RESULT,T.M,20); E.menu([{label:"Continue",fn:()=>E.go(S.over?"gameover":"travel")},{label:"What is a Presbytery?",fn:()=>E.go("fact",{lines:DATA.presbyteryFact,page:"",next:S.over?"gameover":"travel"})}],50,Math.min(ry+6,294),320,{rowH:30}); }
+    else E.menu([{label:"Agree",fn:()=>{ this.result=applyFx(this.trade.fx); E.lock(); }},{label:"Politely decline",fn:()=>{ this.result=["You decline. They'll find someone","else, but you detect a little sass."].concat(applyFx(this.trade.decline||{morale:-2})); E.lock(); }},{label:"What is a Presbytery?",fn:()=>E.go("fact",{lines:DATA.presbyteryFact,page:"",next:"presbytery"})}],50,ty,320,{rowH:30}); },
   key(k){ E.keyMenu(k); }
 };
 
@@ -366,12 +399,12 @@ SC.presbytery = {
 // Economy: budget is reserves, 1.0 = a healthy year. A campaign draws down reserves.
 // You can only pay cash when you have the reserves; a fundraising drive builds them up.
 SC.crossing = {
-  enter(lm){ this.lm=lm; this.result=null; this.waited=0; Sound.beep(330,0.1); },
+  enter(lm){ if(lm!==this.lm||this.game!==S){ this.lm=lm; this.game=S; this.waited=0; } this.result=null; Sound.beep(330,0.1); },
   cost(){ return S.pastor.id==="clifford"?0.45:0.40; },
   draw(){ const lm=this.lm; G.clear(C.BG); drawSceneBand(lm,100); E.statusBar();
     G.rect(0,100,640,300,C.PANEL); G.rect(0,100,640,2,C.RESULT);
     G.text(lm.year+": "+lm.name.toUpperCase(),12,108,C.RESULT,T.M);
-    if(this.result){ G.lines(this.result,16,150,C.RESULT,T.M,22); E.menu([{label:"Continue",fn:()=>E.go("landmark",this.lm)},{label:"Did you know?",fn:()=>E.go("fact",{lines:lm.fact,page:lm.page,paras:true,next:"landmarkLm"})}],16,252,320,{rowH:30}); return; }
+    if(this.result){ const ry=G.lines(this.result,16,140,C.RESULT,T.M,22); E.menu([{label:"Continue",fn:()=>E.go("landmark",this.lm)},{label:"Did you know?",fn:()=>E.go("fact",{lines:lm.fact,page:lm.page,paras:true,next:"landmarkLm"})}],16,Math.max(252,ry+8),320,{rowH:30}); return; }
     G.lines(lm.scene,12,126,C.TEXT,T.M,16);
     const cost=this.cost(), anchor=lerpAnchors(DATA.budgetAnchors,S.year);
     const haveD=fmtMoney(S.budgetDollars()), costD=fmtMoney(cost*anchor), canCash=S.budget>=cost, shortD=fmtMoney(Math.max(0,(cost-S.budget)*anchor));
@@ -380,33 +413,38 @@ SC.crossing = {
     const boxY=174, boxH=56;
     const drawBox=(x,hdr,label,val,frac,fg)=>{ G.box(x,boxY,300,boxH,C.CHAR,C.FRAME); G.rect(x,boxY,300,16,C.HARBOR_INK); G.text(hdr,x+8,boxY+4,C.PAPER,T.S);
       G.text(label,x+10,boxY+22,C.DIM,T.S); G.text("$"+val,x+10,boxY+32,C.TEXT,T.M); G.bar(x+10,boxY+boxH-11,280,6,frac,fg); };
-    drawBox(16,"WHAT YOU HAVE","Reserves",haveD,clamp(S.budget/cost,0,1),canCash?C.GOOD:C.CLAY);
-    drawBox(324,"WHAT IT WILL COST","Our share",costD,1,C.GOLD);
+    drawBox(16,"WHAT YOU HAVE","Funds",haveD,clamp(S.budget/cost,0,1),canCash?C.GOOD:C.CLAY);
+    drawBox(324,"WHAT IT WILL COST","Cash needed",costD,1,C.GOLD);
     // verdict: the one line that answers "do I need to raise money?"
     const vy=236; G.rect(20,vy,12,12,canCash?C.GOOD:C.BAD);
     G.text(canCash?"You can cover this in cash.":("You're short $"+shortD+" - raise funds, borrow, or defer."),38,vy+2,canCash?C.GOOD:C.CLAY_LIGHT,T.M);
     G.text("How will the church pay?",16,vy+20,C.RESULT,T.S);
     E.menu([
       {label:"Pay cash",tag:canCash?("-$"+costD):("need $"+shortD+" more"),dim:!canCash,fn:()=>this.cash()},
-      {label:"Hold a pledge drive",tag:"raise funds now",fn:()=>E.go("drive",{back:"crossing",lm:this.lm})},
+      {label:"Hold a stewardship drive",tag:S.driveLandmark===S.li?"done here":"raise funds now",dim:S.driveLandmark===S.li,fn:()=>E.go("drive",{back:"crossing",lm:this.lm})},
       {label:"Borrow",tag:"10% down, 6 yrs",fn:()=>this.borrow()},
-      {label:"Hire a consultant",tag:"-8%, Vision check",fn:()=>this.consult()},
+      {label:"Hire a consultant",tag:"6% fee, a gamble (Vision)",fn:()=>this.consult()},
       {label:"Wait a year",tag:"reserves grow",fn:()=>this.wait()}
     ],16,vy+34,608,{rowH:25,numbered:false}); },
-  cash(){ S.budget-=this.cost(); S.cash++; applyFx({morale:6,part:4}); this.result=["Paid in full. Session is glad we","didn't take on debt."]; Sound.good(); },
-  borrow(){ S.budget-=0.10; S.debtYears=6; S.borrowed++; applyFx({morale:-3}); this.result=["You take out a loan and budgets","tighten for the next six years."]; },
-  consult(){ S.budget-=0.08; const ok=roll("v"); if(ok){ S.cash++; applyFx({morale:8,part:6,budget:0.04}); this.result=["The campaign beats its goal.","Everyone gets a piece of the old","slate roof."]; Sound.good(); } else { S.budget-=0.08; S.debtYears=4; S.borrowed++; this.result=["The consultant produces a binder","full of ideas, none of them are","any good."]; Sound.bad(); } },
-  wait(){ advanceYear(); this.waited++; applyFx({budget:0.06,part:-4,morale:-3}); if(S.over){ E.go("gameover"); return; } if(this.waited>=3){ this.result=["Three years of waiting. The committee","quietly builds it on a mortgage."]; S.debtYears=6; S.borrowed++; } }
+  cash(){ const c=this.cost(); S.budget-=c; S.cash++; this.result=["Paid in full. Session is glad we","didn't take on debt.","Funds -"+Math.round(c*100)+"%"].concat(applyFx({morale:6,part:4})); Sound.good(); E.lock(); },
+  borrow(){ S.budget-=0.10; S.debtYears=6; S.borrowed++; this.result=["You take out a loan and budgets","tighten for the next six years.","Funds -10%"].concat(applyFx({morale:-3})); E.lock(); },
+  consult(){ S.budget-=0.06; const ok=roll("v");
+    if(ok){ S.budget-=0.15; S.cash++; this.result=["The campaign beats its goal.","Everyone gets a commemorative brick.","Funds -21%"].concat(applyFx({morale:6,part:4})); Sound.good(); }
+    else { S.budget-=0.10; S.debtYears=6; S.borrowed++; this.result=["The consultant produces a binder","full of ideas. None are any good.","Session borrows to finish it.","Funds -16%, plus six years of debt"].concat(applyFx({morale:-3})); Sound.bad(); } E.lock(); },
+  wait(){ advanceYear(); this.waited++; const r=applyFx({budget:0.06,part:-4,morale:-3}); if(S.over){ E.go("gameover"); return; } if(this.waited>=3){ this.result=["Three years of waiting. The committee","quietly builds it on a mortgage."]; S.debtYears=6; S.borrowed++; E.lock(); } else E.go("note",{lines:["You wait a year. So does the project.",r.join(", ")],next:"crossingBack"}); }
 };
 SC.landmarkLm = { enter(){ E.go("landmark",SC.crossing.lm); }, draw(){} };
+SC.crossingBack = { enter(){ E.go("crossing",SC.crossing.lm); }, draw(){} };
 
 // ---- game over / win ----
 SC.gameover = {
-  enter(){ Sound.bad(); const key=S.pastor.id==="calvin"?"calvin":S.over; this.lines=DATA.gameOver[key]||DATA.gameOver.stamina; track("session_end",endRow(S.over)); },
-  draw(){ G.clear(C.BG); G.box2(40,40,560,320,C.PANEL,C.FRAME); G.ctext("THE END OF THE ROAD, "+S.year,320,56,C.BAD,T.M);
+  enter(){ Sound.bad(); CLIFFORD_UNLOCKED=true; const key=S.pastor.id==="calvin"?"calvin":S.over; this.lines=DATA.gameOver[key]||DATA.gameOver.stamina; track("session_end",endRow(S.over)); },
+  WHY:{ budget:"Out of money two years running.", members:"Fewer than 100 members are left.", morale:"Morale hit zero.", stamina:"Your stamina hit zero.", party:"All your leaders have been called elsewhere." },
+  draw(){ G.clear(C.BG); G.box2(40,40,560,320,C.PANEL,C.FRAME); G.ctext("THE END OF THE ROAD, "+S.year,320,56,C.CLAY_LIGHT,T.M);
+    if(this.WHY[S.over]) G.ctext(this.WHY[S.over],320,168,C.WARN,T.M);
     G.rect(260,90,120,70,C.STONE_MID); G.frame(260,90,120,70,C.FRAME,2); G.ctext(S.pastor.short.toUpperCase(),320,106,C.TEXT,T.M); G.ctext("1926-"+S.year,320,128,C.GOLD_PALE,T.S);
-    G.clines(this.lines,320,178,C.TEXT,T.M,22);
-    G.ctext("Score: "+score().total,320,256,C.TITLE,T.M);
+    G.clines(this.lines,320,192,C.TEXT,T.M,20);
+    G.ctext("Score: "+score().total,320,260,C.TITLE,T.M);
     E.menu([{label:"Enter your initials",fn:()=>E.go("initials")},{label:"Back to the title",fn:()=>E.go("title")}],180,290,280,{rowH:30}); },
   key(k){ E.keyMenu(k); }
 };
@@ -519,22 +557,22 @@ SC.finale = {
     // HUD
     G.rect(0,0,640,20,C.PANEL); G.text("THE DRIVE HOME",8,4,C.TITLE,T.M); const pr=clamp(this.dist/this.FINISH,0,1);
     G.text("1926",372,5,C.DIM,T.S); G.bar(422,7,150,7,pr,C.SAGE); G.text("2026",578,5,C.DIM,T.S);
-    if(this.phase==="play"){ G.rect(0,378,640,22,C.PANEL); G.ctext("HOLD LEFT OR RIGHT  (or arrow keys)  TO STEER",320,383,C.PAPER,T.M); }
+    if(this.phase==="play"){ G.rect(0,378,640,22,C.PANEL); G.ctext("HOLD THE LEFT OR RIGHT SIDE TO STEER",320,383,C.PAPER,T.M); }
     if(this.phase==="choose"){ G.rect(0,378,640,22,C.PANEL);
       G.ctext("STEER LEFT / RIGHT TO CHOOSE YOUR ROAD",320,383,C.PAPER,T.M);
       if(this.chooseT>0.35){ G.box2(234,338,172,34,C.PANEL,C.SAGE); G.ctext("TAKE THIS ROAD",320,348,C.TITLE,T.M); } }
     if(this.phase==="intro"){ G.box2(60,78,520,244,C.PANEL,C.TITLE); G.ctext("THE DRIVE HOME",320,92,C.TITLE,T.XL);
-      G.cpara("Drive the church bus, up Providence Road to Centennial Sunday. Hold the left or right side of the screen to steer around the oncoming traffic and the roadwork. As you near the intersection of Providence, Providence, Queens, and Queens, steer to pick your road -- home to the church, or the scenic way by Freedom Park.",320,124,C.TEXT,T.M,472,20);
+      G.cpara("Drive the church bus up Providence Road to Centennial Sunday. Hold the left or right side of the screen to steer around the oncoming traffic and the roadwork. As you near the intersection of Providence, Providence, Queens, and Queens, steer to pick your road -- home to the church, or the scenic way by Freedom Park.",320,124,C.TEXT,T.M,472,20);
       E.button("Drive home",230,282,180,36,()=>this.start(),"Enter",C.SAGE_INK); }
     if(this.phase==="arrive"){ this.at+=dt; const wrong=this.wrong;
-      G.box2(70,120,500,170,C.PANEL,wrong?C.CLAY_LIGHT:C.TITLE);
-      if(wrong){ G.ctext("THE SCENIC ROUTE",320,138,C.TITLE,T.XL); G.cpara("You followed the road down to Freedom Park instead. Not a terrible choice, but you missed the Centennial celebration!",320,174,C.TEXT,T.M,440,20); }
-      else { G.ctext("CENTENNIAL SUNDAY",320,138,C.TITLE,T.XL); G.cpara(this.bumps===0?"You pulled the bus up to the doors without a scratch! Nice work.":"A few bumps along the way, but the bus made it to the doors.",320,174,C.TEXT,T.M,440,20); }
-      if(this.at>0.4) E.button("Continue",230,250,180,34,()=>this.finish(),"Enter",C.SAGE_INK); }
+      G.box2(70,106,500,184,C.PANEL,wrong?C.CLAY_LIGHT:C.TITLE);
+      if(wrong){ G.ctext("THE SCENIC ROUTE",320,122,C.TITLE,T.XL); G.cpara("You followed the road down to Freedom Park instead. Not a terrible choice, but you missed the Centennial celebration! Maybe you can catch the livestream.",320,158,C.TEXT,T.M,440,20); }
+      else { G.ctext("CENTENNIAL SUNDAY",320,122,C.TITLE,T.XL); G.cpara(this.bumps===0?"You pulled the bus up to the doors without a scratch! Nice work.":"A few bumps along the way, but the bus made it to the doors.",320,160,C.TEXT,T.M,440,20); }
+      if(this.at>0.4) E.button("Continue",230,252,180,34,()=>this.finish(),"Enter",C.SAGE_INK); }
   },
   finish(){ S.homecoming=(!this.wrong&&this.bumps===0); S.finaleWrong=this.wrong; S.finaleChoice=this.choice; E.go("win"); },
   tap(x,y,id){ if(this.phase==="play"){ this.steer=x<320?-1:1; this.u=clamp(this.u+this.steer*0.12,-1,1); return true; }
-    if(this.phase==="choose"){ if(this.chooseT>0.35 && x>=220 && x<=420 && y>=330){ this.confirm(); return true; } this.steer=x<320?-1:1; return true; }
+    if(this.phase==="choose"){ if(this.chooseT>0.35 && x>=220 && x<=420 && y>=330){ this.confirm(); return true; } this.steer=x<320?-1:1; this.u=clamp(this.u+this.steer*0.12,-1,1); return true; }
     return false; },
   move(x,y,down){ if((this.phase==="play"||this.phase==="choose")&&down) this.steer=x<320?-1:1; },
   up(){ this.steer=0; },
@@ -542,7 +580,7 @@ SC.finale = {
   keyup(k){ if(k==="ArrowLeft"&&this.steer<0) this.steer=0; if(k==="ArrowRight"&&this.steer>0) this.steer=0; }
 };
 SC.win = {
-  enter(){ S.reached2026=true; S.year=2026; Sound.hymn(); this.t=0; this.fw=[]; this.sp=[]; this.spawnT=0.25; Store.stat("wins"); track("session_end",endRow("win")); },
+  enter(){ S.reached2026=true; S.year=2026; CLIFFORD_UNLOCKED=true; Sound.hymn(); this.t=0; this.fw=[]; this.sp=[]; this.spawnT=0.25; if(!S.debug) Store.stat("wins"); track("session_end",endRow("win")); },
   FWCOL:[C.CLAY,C.CLAY_INK,C.PLUM,C.HARBOR_INK,C.SAGE_INK,C.PLUM_INK,C.GOLD_INK],
   // 8-bit fireworks in the sky: rockets rise from the ground line and burst into a ring of blocky sparks that arc down under gravity and fade
   fwUpdate(dt){ dt=Math.min(dt||0,0.05);
@@ -573,7 +611,7 @@ SC.win = {
 SC.tally = {
   draw(){ G.clear(C.BG); G.box2(60,30,520,340,C.PANEL,C.FRAME); G.ctext("THE TALLY",320,46,C.TITLE,T.XL); const sc=score();
     sc.parts.forEach((p,i)=>{ G.text(p[0],90,86+i*22,C.TEXT,T.M); G.rtext(String(p[1]),540,86+i*22,C.RESULT,T.M); });
-    G.text("Total",90,86+8*22+8,C.TITLE,T.M); G.rtext("= "+sc.total,540,86+8*22+8,C.TITLE,T.M);
+    G.text(sc.mult!==1?"Subtotal "+sc.raw+", pastor bonus x"+sc.mult:"Total",90,86+8*22+8,C.TITLE,T.M); G.rtext("= "+sc.total,540,86+8*22+8,C.TITLE,T.M);
     E.menu([{label:"Enter your initials",fn:()=>E.go("initials")},{label:"Back to the title",fn:()=>E.go("title")}],90,300,300,{rowH:30}); },
   key(k){ E.keyMenu(k); }
 };
@@ -592,7 +630,7 @@ SC.initials = {
 SC.debug = {
   pi:0,
   // seed a realistic mid-game state so playtested screens show grown numbers, not the frozen 1926/245 start
-  seed(pi){ newGame(DATA.pastors[pi],"short"); S.year=2001; S.members=Math.round(lerpAnchors(DATA.memberAnchors,2001)); const i=S.landmarks.findIndex(l=>l.year>=2001); S.li=i>0?i:1; },
+  seed(pi){ newGame(DATA.pastors[pi],"short"); S.debug=true; S.year=2001; S.members=Math.round(lerpAnchors(DATA.memberAnchors,2001)); const i=S.landmarks.findIndex(l=>l.year>=2001); S.li=i>0?i:1; },
   enter(){ if(typeof S==="undefined" || !S || !S.pastor){ this.seed(this.pi); } },
   setLi(stop){ const i=S.landmarks.indexOf(stop); S.li = i>=0?i:0; },
   draw(){

@@ -14,8 +14,9 @@ DATA.subtitle = "Can you guide the church to 100 years?";
 
 DATA.about = [
   "You are one of the pastors of Myers Park Presbyterian Church. Drive the church mini-bus from the early days meeting at the Queens College chapel all the way to Centennial Sunday in 2026.",
-  "Keep the church healthy by managing: the Funds, the Members, the congregation's Morale, Participation in the life of the church, and your own Stamina. When a bar runs out, your tenure ends.",
-  "Every so often, you'll have the opportunity to meet a big need in the life of the church and the community. To pay for it, bring in pledges by holding a stewardship drive.",
+  "Keep the church healthy by managing: the Funds, the Members, the congregation's Morale, Participation in the life of the church, and your own Stamina. If Funds, Members, Morale or Stamina run out, or all your leaders leave, your tenure ends.",
+  "Every so often, you'll have the opportunity to meet a big need in the life of the church and the community. Building projects need cash: stop along the way and hold a stewardship drive to save up.",
+  "Your score counts members, funds, morale, participation, leaders still aboard and campaigns paid in cash.",
   "The history is true, drawn from \"A Legacy of Love\" by Lois Stickell. A few small events are invented for fun."
 ];
 
@@ -89,7 +90,7 @@ DATA.trail = [
     fact:["The Founders Campaign raised about two hundred seventy-five thousand dollars for the stone Sanctuary and the Sunday School classrooms behind it. The architects gave it an English Gothic look, and the stone was hauled from a quarry at the edge of the Myers Park Country Club by mule.","Stone kept disappearing from the construction site overnight, so the church hired a night watchman."], page:"p.19-34, 433" },
   { year:1929, type:"land", short:true, name:"First Service in the Sanctuary",
     scene:["The first worship service held on","the church's own property."],
-    fact:["The first service in the stone Sanctuary was held in April 1929 on a very warm Sunday. There was no air conditioning, the temperature was in the eighties. One founding member still pronounced it very, very comfortable.","Air conditioning did not arrive until 1952."], page:"p.38" },
+    fact:["The first service in the stone Sanctuary was held in April 1929 on a very warm Sunday. There was no air conditioning, and the temperature was in the eighties. One founding member still pronounced it very, very comfortable.","Air conditioning did not arrive until 1952."], page:"p.38" },
   { year:1931, type:"land", short:false, name:"The Depression Reaches the Pews",
     scene:["The stock market has crashed. The","church has a loan out on the Sanctuary,","and many of its members are hit hard."],
     fact:["Four of Charlotte's seven banks failed during the Depression, and contributions to the church fell with them. In 1932 the Session cut the pay of the paid choir members by a quarter.","None of the singers quit, and benevolences were not reduced. They also proceeded with construction of the manse the church had promised its first pastor, albeit four years behind schedule."], page:"p.52-55" },
@@ -150,25 +151,26 @@ DATA.memberAnchors = [[1926,245],[1934,600],[1939,1000],[1955,2138],[1974,3000],
 
 // ---------- EVENTS ----------
 // fields: y (year or [from,to]), t (title lines), fx (effects), page, straight (no jokes), invented, check:{stat,pass,fail}, choice:[{label,fx}]
+// key:true = must-see history: when the trail is too busy to show every dated event, key events win the slot (and may run up to 12 years late)
 // fx keys: budget (fraction), members (fraction or {n:absolute}), morale, part, stam, energy, year (travel years), msg
 DATA.events = [
   // Founding and Depression
-  { y:1927, t:["Your call committee sits scattered","in your Selma church to blend in.","You spot them right away."], fx:{morale:5}, page:"p.11", fact:["The committee seeking to call MPPC's first pastor visited their pick as his church in Selma, Alabama. Apparently, Edgar Gammon spotted them right away, confronting them after the service."] },
+  { y:1927, t:["Your call committee sits scattered","in your Selma church to blend in.","You spot them right away."], fx:{morale:5}, page:"p.11", fact:["The committee seeking to call MPPC's first pastor visited their pick at his church in Selma, Alabama. Apparently, Edgar Gammon spotted them right away, confronting them after the service."] },
   { y:1927, t:["Your first budget forgot to include","fire insurance, calendars and","music. Whoops."], fx:{budget:-0.03}, page:"p.30", fact:["The founders of our church didn't have the benefit of a \"parent church\" in the typical sense, and in some ways were learning on the job."] },
   { y:1928, t:["Stone keeps walking off the","building site at night. You hire","a night watchman."], fx:{budget:-0.01}, page:"p.34", fact:["It took a lot of stone, and a lot of mule cart trips hauling it down from a quarry near the country club, to build the church. We presume some folks found our stone as beautiful as we did and decided to abscond with it."] },
-  { y:1929, t:["Session signs a $125,000 mortgage","in June. The stock market crashes","in October."], fx:{budget:-0.15}, page:"p.43-45", fact:["The Wall Street crash of October 1929 wiped out fortunes and tipped the United States into the Great Depression. The church had just signed a mortgage on its new Sanctuary, and Charlotte's banks and givers were badly hurt in the years that followed."] },
+  { key:true, y:1929, t:["Session signs a $125,000 mortgage","in June. The stock market crashes","in October."], fx:{budget:-0.15}, page:"p.43-45", fact:["The Wall Street crash of October 1929 wiped out fortunes and tipped the United States into the Great Depression. The church had just signed a mortgage on its new Sanctuary, and Charlotte's banks and givers were badly hurt in the years that followed."] },
   { y:1931, t:["Contributions are down. Cut the","paid choir members' pay by a quarter?"], page:"p.54-55",
     fact:["Contributions fell hard during the Depression — four of Charlotte's seven banks failed. In 1932 the Session cut the paid choir members' pay by a quarter.","Not one singer quit, and the church's benevolences were not reduced."],
     choice:[{label:"Cut the pay",fx:{budget:0.03,morale:-4,msg:"Not one singer quits."}},{label:"Keep paying them in full",fx:{budget:-0.03,morale:2}}] },
-  { y:1932, t:["A church in Richmond tries to","call you away."], page:"p.54", check:{stat:"g", pass:{morale:3,msg:"You stay. The Session exhales."}, fail:{members:-0.02,msg:"You stay, but they got nervous."}} },
-  { y:1937, t:["Session rules that men may remove","their suit coats in summer worship."], fx:{morale:3}, page:"p.123", fact:["Church was a very formal affair in the early days of the church. While we were unable to find any written dress code, we do find it interesting that the question of men's suit coats was a question put before the Session of the church."] },
-  { y:1927, t:["The deed to the lot carries a racial","covenant restricting the land to","white owners. It was common in","Myers Park, and it was wrong."], fx:{}, page:"p.19", fact:["Racially restrictive covenants -- deed clauses barring the sale of a lot to non-white owners -- were common across American suburbs in the early twentieth century, and Myers Park was planned with them. The U.S. Supreme Court ruled such covenants legally unenforceable in 1948, and the Fair Housing Act outlawed them in 1968."], straight:true },
+  { y:1932, t:["A church in Richmond tries to","call you away."], page:"p.54", check:{stat:"g", pass:{morale:3,msg:"You stay. The Session exhales."}, fail:{morale:-4,msg:"You stay, but they got nervous."}} },
+  { y:1937, t:["Session rules that men may remove","their suit coats in summer worship."], fx:{morale:3}, page:"p.123", fact:["Church was a very formal affair in the early days of the church. While we were unable to find any written dress code, we do find it interesting that the question of men's suit coats came before the Session of the church at all."] },
+  { key:true, y:1927, t:["The deed to the lot carries a racial","covenant restricting the land to","white owners. It was common in","Myers Park, and it was wrong."], fx:{}, page:"p.19", fact:["Racially restrictive covenants -- deed clauses barring the sale of a lot to non-white owners -- were common across American suburbs in the early twentieth century, and Myers Park was planned with them. The U.S. Supreme Court ruled such covenants legally unenforceable in 1948, and the Fair Housing Act outlawed them in 1968."], straight:true },
   // War and growth
   { y:1942, t:["The church is named a civil-","defense welfare station."], fx:{part:6}, page:"p.81", fact:["After the United States entered the Second World War in December 1941, cities built civil-defense networks and named buildings as welfare and shelter stations in case of attack. Churches across the country took on home-front and relief roles while many of their members served overseas."] },
   { y:1945, t:["A Methodist neighbor fires a","homemade mortar at the church","and misses."], fx:{morale:2}, page:"p.99-101", fact:["Our neighbor at 1543 Queens Road had just returned from WWII with specific skills it seems he needed to continue to hone. His homemade mortar round remains the only known Methodist attack on the Presbyterians."] },
-  { y:1948, t:["Polio summer. Parents keep children","home and attendance hits the lowest","ebb in church history."], fx:{members:-0.03,part:-8}, page:"p.97", fact:["Polio epidemics swept the United States nearly every summer in the 1940s and 1950s, striking children hardest and leaving some paralyzed. Frightened parents kept children away from crowds -- pools, theaters, and churches -- until a vaccine finally arrived in the mid-1950s."] },
+  { y:1948, t:["Polio summer. Parents keep children","home and attendance hits the lowest","ebb in church history."], fx:{part:-8}, page:"p.97", fact:["Polio epidemics swept the United States nearly every summer in the 1940s and 1950s, striking children hardest and leaving some paralyzed. Frightened parents kept children away from crowds -- pools, theaters, and churches -- until a vaccine finally arrived in the mid-1950s."] },
   { y:1948, t:["You are invited on a four-month","goodwill tour of mission sites."], page:"p.110-111",
-    choice:[{label:"Go",fx:{part:4,morale:-4,msg:"Session is \"less enthusiastic.\""}},{label:"Stay home",fx:{stam:-2}}] },
+    choice:[{label:"Go",fx:{part:4,morale:-4,msg:"Session is \"less enthusiastic.\""}},{label:"Stay home",fx:{morale:2}}] },
   { y:1951, t:["Send three hundred members off","to found Trinity Presbyterian?"], page:"p.114",
     fact:["In 1951 Myers Park sent roughly three hundred of its own members off to help organize Trinity Presbyterian Church. The congregation's twenty-fifth-anniversary campaign had deliberately set money aside to help start new churches across Charlotte.","Trinity was one of several daughter churches Myers Park helped begin."],
     choice:[{label:"Send them",fx:{members:{n:-300},morale:10,msg:"A daughter church is born."}},{label:"Keep them",fx:{morale:-3}}] },
@@ -177,35 +179,35 @@ DATA.events = [
   { y:1955, t:["Parking has reached the manse lawn.","Buy the house next door to put up","a bigger parking lot?"], page:"p.128",
     choice:[{label:"Buy it",fx:{budget:-0.06,morale:4}},{label:"Park on the lawn",fx:{morale:-2}}] },
   // Change
-  { y:1960, t:["The city votes to clear Brooklyn,","a Black neighborhood downtown.","Your members sit on both sides","of the question."], page:"p.149-152", fact:["Brooklyn, in Charlotte's Second Ward, was the city's largest Black neighborhood -- home to churches, businesses, and hundreds of families. Under 'urban renewal' in the 1960s and 1970s the city cleared well over a thousand structures and displaced its residents, and no homes were ever rebuilt there."], straight:true,
+  { key:true, y:1960, t:["The city votes to clear Brooklyn,","a Black neighborhood downtown.","Your members sit on both sides","of the question."], page:"p.149-152", fact:["Brooklyn, in Charlotte's Second Ward, was the city's largest Black neighborhood -- home to churches, businesses, and hundreds of families. Under 'urban renewal' in the 1960s and 1970s the city cleared well over a thousand structures and displaced its residents, and no homes were ever rebuilt there."], straight:true,
     choice:[{label:"Speak from the pulpit",check:{stat:"g",pass:{morale:5},fail:{members:-0.02}}},{label:"Stay quiet",fx:{morale:-5}}] },
-  { y:1963, t:["President Kennedy is shot.","More than a thousand people fill","the Sanctuary that day."], fx:{part:8,morale:-4}, page:"p.155", fact:["President John F. Kennedy was assassinated in Dallas on November 22, 1963. The nation came to a halt, and across the country churches opened their doors so people could gather to pray and grieve."], straight:true },
+  { key:true, y:1963, t:["President Kennedy is shot.","More than a thousand people fill","the Sanctuary that day."], fx:{part:8,morale:-4}, page:"p.155", fact:["President John F. Kennedy was assassinated in Dallas on November 22, 1963. The nation came to a halt, and across the country churches opened their doors so people could gather to pray and grieve."], straight:true },
   { y:1966, t:["The Duke Mansion is left to the","church. It sells for $85,000."], fx:{budget:0.08}, page:"p.170", fact:["The mansion in Myers Park was the Charlotte home of tobacco and electric-power magnate James Buchanan Duke, who enlarged it to some forty-five rooms and signed the papers creating The Duke Endowment there in 1924. After passing through several owners it was restored in the 1990s and today operates as a historic inn."] },
-  { y:1970, t:["The youth \"preachernap\" the associate","pastor from the Putt-Putt course."], fx:{morale:3,stam:-1}, page:"p.160", fact:["It's a true story: A group of MPPC Youth abducted their youth pastor and stuff him in a car, presumably driven by a parent accomplice, driving around town before getting him out to see a big sign reading: \"We love you, Chuckie.\""] },
-  { y:1975, t:["A purse thief keeps making off with","money from the choir room. Eventually","the locks are changed."], fx:{morale:2}, page:"p.183", fact:["Thou shalt not steal."] },
+  { y:1970, t:["The youth \"preachernap\" the associate","pastor from the Putt-Putt course."], fx:{morale:3,stam:-1}, page:"p.160", fact:["It's a true story: A group of MPPC Youth abducted their youth pastor and stuffed him in a car, presumably driven by a parent accomplice, driving around town before getting him out to see a big sign reading: \"We love you, Chuckie.\""] },
+  { y:1975, t:["A purse thief keeps making off with","money from the choir room. Eventually","the locks are changed."], fx:{budget:-0.01,morale:-1}, page:"p.183", fact:["Thou shalt not steal."] },
   { y:1977, t:["You speak up for clemency for the","Wilmington Ten. Session holds a heated","meeting, and a few members withhold","their pledges in protest."], page:"p.204", fact:["The Wilmington Ten -- nine young Black men and one white woman, led by civil-rights organizer Ben Chavis -- were wrongfully convicted on arson and conspiracy charges after 1971 racial unrest in Wilmington, North Carolina. A federal court overturned the convictions in 1980, and the state formally pardoned the group in 2012."], straight:true, check:{stat:"g", pass:{msg:"You hear everyone out. They stay."}, fail:{budget:-0.05}} },
   { y:1982, t:["So many cars park on the neighbors' streets","that the police chief writes to the Session:","\"The tow-away signs mean what they say.\"","Parking continues to be challenging."], fx:{morale:-3}, page:"p.232", fact:["Many solutions have been proposed to alleviate the parking situation over the years. The most serious and best attempt, providing hundreds of spots at the Outreach Center, has been said to be \"not close enough.\""] },
   { y:1985, t:["A nine-year-old writes Session asking","for a gym. Session prices it out and","defers to the next building campaign."], fx:{morale:1}, page:"p.233-234", fact:["When you write a note to Session, they read it!"] },
   // Big steeple, big weather
   { y:1987, t:["You are called to MPPC by a vote of","619 to 2. You wonder about the two."], fx:{morale:5}, page:"p.239", fact:["Most congregational votes are unanimous, but for reasons lost to time, this one was not."] },
-  { y:1989, t:["Hurricane Hugo. Trees down, power out","for weeks, and the church holds a","relief breakfast in the gym."], fx:{part:-6,budget:-0.04,morale:3}, page:"p.258-260", fact:["Hurricane Hugo struck the Carolina coast as a Category 4 storm in September 1989 and, unusually, stayed powerful far inland. It battered Charlotte through the night, downing tens of thousands of trees and cutting power across the city for weeks."] },
-  { y:1991, t:["Form an AIDS Task Force when no","one, \"especially the big steeple","churches,\" would."], page:"p.269-270", fact:["By the early 1990s AIDS had become a leading cause of death for young adults in America, and the epidemic was deepened by fear and stigma. Many large congregations kept their distance, so a church that formed a task force to respond was doing something few 'big steeple' churches would."], check:{stat:"c", pass:{morale:8}, fail:{morale:4,members:-0.01}} },
-  { y:1993, t:["Members pledge 125,000 volunteer hours","and millions of dollars in a campaign.","Session lets out un-Presbyterian","whoops of joy."], fx:{part:20}, page:"p.274" },
+  { key:true, y:1989, t:["Hurricane Hugo. Trees down, power out","for weeks, and the church holds a","relief breakfast in the gym."], fx:{part:-6,budget:-0.04,morale:3,energy:-8}, page:"p.258-260", fact:["Hurricane Hugo struck the Carolina coast as a Category 4 storm in September 1989 and, unusually, stayed powerful far inland. It battered Charlotte through the night, downing tens of thousands of trees and cutting power across the city for weeks."] },
+  { y:1991, t:["You form an AIDS Task Force when no","one, \"especially the big steeple","churches,\" would."], page:"p.269-270", fact:["By the early 1990s AIDS had become a leading cause of death for young adults in America, and the epidemic was deepened by fear and stigma. Many large congregations kept their distance, so a church that formed a task force to respond was doing something few 'big steeple' churches would."], check:{stat:"c", pass:{morale:8}, fail:{morale:4,members:-0.01}} },
+  { y:1993, t:["Members pledge 125,000 volunteer hours","and millions of dollars in a campaign.","Session lets out un-Presbyterian","whoops of joy."], fx:{part:12,budget:0.05}, page:"p.274" },
   { y:[1988,1995], t:["Session asks what God created on","the seventh day. You answer:","\"The Winston Cup.\""], fx:{morale:3,part:3}, page:"p.277-279", fact:["Tim Croft was a huge NASCAR fan. When a 1971 federal law banned cigarette ads on television, the R.J. Reynolds Tobacco Company shifted its money into motorsports and lent NASCAR's top series the name of its Winston brand. The Winston Cup was stock-car racing's premier championship from 1971 until 2003."] },
   { y:1996, t:["You preach from the floor instead of","the pulpit. The Charlotte Observer","writes about the departure in decorum."], page:"p.286", check:{stat:"p", pass:{morale:6}, fail:{morale:-6}} },
-  { y:2002, t:["The Celebrate service launches on","tarps in the gym. Three hundred","people show up."], fx:{members:0.02,part:8}, page:"p.312-314", fact:["The Celebrate service began not at the direction of a Pastor, rather, it began during an interim period when there was no head of staff pastor at all."] },
-  { y:2008, t:["It's the Great Recession :( You need","$1.6M in December. Cut the free","coffee to save $17,000?"], page:"p.339-340",
+  { y:2002, t:["The Celebrate service launches on","tarps in the gym. Three hundred","people show up."], fx:{members:0.02,part:8}, page:"p.312-314", fact:["The Celebrate service began not at a pastor's direction but during an interim period, when there was no head of staff pastor at all."] },
+  { key:true, y:2008, t:["It's the Great Recession :( You need","$1.6M in December. Cut the free","coffee to save $17,000?"], page:"p.339-340",
     fact:["In December 2008, as the financial crisis unfolded, the church still needed one point six million dollars for its annual budget. One cost-cutting idea on the table was to stop giving away coffee, saving about seventeen thousand dollars a year.","Through it all, the church held the line to protect its outreach support."],
     choice:[{label:"Cut the coffee",fx:{budget:0.03,morale:-6,msg:"We're less caffeinated, but outreach funding is not cut."}},{label:"Keep the coffee",fx:{budget:-0.03,morale:1}}] },
-  { y:2011, t:["The denomination ends its ban on","LGBTQIA+ clergy and lay leaders.","Some members leave. Others who","disagreed stay."], fx:{members:-0.01}, page:"p.311-312", fact:["In 2011 the Presbyterian Church (U.S.A.) ratified 'Amendment 10-A,' removing the constitutional barrier to ordaining gay and lesbian clergy and lay leaders. The change let each presbytery and congregation decide for itself, and it took effect that July."], straight:true },
-  { y:2015, t:["The denomination has redefined","marriage. Hold a town hall and","update the wedding policy?"], page:"p.367-368", straight:true,
+  { key:true, y:2011, t:["The denomination ends its ban on","LGBTQIA+ clergy and lay leaders.","Some members leave. Others who","disagreed stay."], fx:{members:-0.01}, page:"p.311-312", fact:["In 2011 the Presbyterian Church (U.S.A.) ratified 'Amendment 10-A,' removing the constitutional barrier to ordaining gay and lesbian clergy and lay leaders. The change let each presbytery and congregation decide for itself, and it took effect that July."], straight:true },
+  { key:true, y:2015, t:["The denomination has redefined","marriage. Hold a town hall and","update the wedding policy?"], page:"p.367-368", straight:true,
     fact:["In 2015, after the denomination changed its definition of marriage, the Session held a town hall and several listening sessions before amending the church's wedding policy to include people of all genders.","Some families left and annual giving declined for a time."],
-    choice:[{label:"Hold the town hall, update it",fx:{morale:6,members:-0.02,budget:-0.03,msg:"Giving recovers in 18 months."}},{label:"Keep the old policy",fx:{morale:-6,part:-6}},{label:"Delay a year",fx:{morale:-4}}] },
+    choice:[{label:"Hold the town hall, update it",fx:{morale:6,members:-0.02,budget:-0.03,msg:"Giving recovers in 18 months."}},{label:"Keep the old policy",fx:{morale:-6,part:-6}},{label:"Delay a year",fx:{morale:-4,msg:"It isn't going away."}}] },
   // Pandemic and centennial
   { y:2016, t:["Your first Sunday in the pulpit at MPPC","is September 11. Nine days later,","unrest downtown. Join the march?"], page:"p.379", fact:["In September 2016 the police shooting of Keith Lamont Scott set off days of protest in Charlotte. The governor declared a state of emergency and the city set a curfew; later marches were largely peaceful as demonstrators called for the release of police video."], straight:true,
     choice:[{label:"Go",check:{stat:"g",pass:{morale:4},fail:{morale:-2}}},{label:"Stay",fx:{morale:-2}}] },
   { y:2023, t:["Tuesdays Together launches for the","over-60 crowd. One hundred come the","first night. The speaker is the one","and only Joe Clifford."], fx:{part:10,morale:3}, page:"p.415" },
-  { y:2020, t:["COVID-19 hits. Worship goes online.","Staff are furloughed. A Zoom morning","prayer begins and continues on","weekday mornings even now."], fx:{part:-25,budget:-0.10}, page:"p.394-400", fact:["The World Health Organization declared COVID-19 a pandemic in March 2020, and gatherings of every kind shut down. Churches moved worship online almost overnight -- a single Sunday might have a few dozen people in the building and hundreds more watching from home."], straight:true },
+  { key:true, y:2020, t:["COVID-19 hits. Worship goes online.","Staff are furloughed. A Zoom morning","prayer begins and continues on","weekday mornings even now."], fx:{part:-25,budget:-0.05}, page:"p.394-400", fact:["The World Health Organization declared COVID-19 a pandemic in March 2020, and gatherings of every kind shut down. Churches moved worship online almost overnight -- a single Sunday might have a few dozen people in the building and hundreds more watching from home."], straight:true },
   { y:2022, t:["The new organist plays so loudly","he knocks pictures off the walls."], fx:{morale:4}, page:"p.411", fact:["Tom Robak began as our organist in 2022, and during a particularly robust practice session, rattled the walls of the chancel so much the photos on the other side slipped off of their nails and crashed to the floor."] },
   { y:2024, t:["Hurricane Helene devastates much of","western North Carolina. The church","houses displaced volunteers and","sends $125,000 in relief."], fx:{part:6,morale:5,budget:-0.02}, page:"p.415-416", fact:["Hurricane Helene came ashore in Florida in late September 2024 and pushed inland, dropping catastrophic rain on the southern Appalachians. Western North Carolina around Asheville was hit especially hard, and churches across the state sent volunteers and relief."] },
   // Any era, real
@@ -217,16 +219,16 @@ DATA.events = [
   // Invented
   { y:"any", invented:true, t:["A big donor family moves to Florida.","They say they'll still watch online."], fx:{budget:-0.04} },
   { y:"any", invented:true, t:["The boiler needs a complete","overhaul."], fx:{budget:-0.03}, boiler:true },
-  { y:"any", invented:true, t:["The bell tower is out of tune."], fx:{morale:1} },
-  { y:"any", invented:true, t:["A bird gets into the Sanctuary","during the anthem. Morale soars."], fx:{morale:3,part:1} },
-  { y:"any", invented:true, t:["Session meeting runs past ten p.m.","Morale sinks."], fx:{stam:-1} },
-  { y:"any", invented:true, t:["You arrive to a full parking lot.","Morale sinks."], fx:{stam:-1,morale:1} },
+  { y:"any", invented:true, t:["The bell tower is out of tune."], fx:{morale:-1} },
+  { y:"any", invented:true, t:["A bird gets into the Sanctuary","during the anthem. Morale soars."], fx:{morale:3,part:1,energy:5} },
+  { y:"any", invented:true, t:["Session meeting runs past ten p.m.","Morale sinks."], fx:{morale:-2,stam:-1,energy:-5} },
+  { y:"any", invented:true, t:["You arrive to a full parking lot.","Morale sinks."], fx:{morale:-2,part:2} },
   { y:"any", invented:true, t:["A visiting preacher goes fifteen","minutes long."], fx:{morale:-2,part:-1} },
   { y:"any", invented:true, t:["The bulletin lists the wrong hymn","number. The congregation sings","the right one anyway."], fx:{morale:1} },
-  { y:"any", invented:true, t:["A casserole arrives at the office,","unprompted and still warm. Morale soars."], fx:{part:2,morale:1} },
-  { y:"any", invented:true, t:["The copier jams on the Friday","before Easter. Morale sinks."], fx:{stam:-1}, coffee:true },
-  { y:"any", invented:true, t:["A youth fundraiser somehow produces","seven hundred pies. Morale soars."], fx:{morale:2} },
-  { y:"any", invented:true, t:["The organ needs tuning the week","of the Messiah."], fx:{budget:-0.01,morale:3} },
+  { y:"any", invented:true, t:["A casserole arrives at the office,","unprompted and still warm. Morale soars."], fx:{morale:3,part:1,energy:5} },
+  { y:"any", invented:true, t:["The copier jams on the Friday","before Easter. Morale sinks."], fx:{morale:-2,stam:-1,energy:-5}, coffee:true },
+  { y:"any", invented:true, t:["A youth fundraiser somehow produces","seven hundred pies. Morale soars."], fx:{morale:3,energy:5} },
+  { y:"any", invented:true, t:["The organ needs tuning the week","of the Messiah."], fx:{budget:-0.01} },
   { y:"any", invented:true, t:["A member's dog attends worship","and behaves better than some."], fx:{morale:2} },
   { y:"any", invented:true, t:["Rain on the day of the church picnic.","The gym worked fine."], fx:{part:-2,morale:-1} },
   { y:"any", invented:true, t:["The fellowship coffee runs out","halfway through. Morale sinks."], fx:{morale:-3}, coffee:true },
@@ -234,18 +236,24 @@ DATA.events = [
   { y:"any", invented:true, t:["A newcomer asks which Myers Park","church this one is."], check:{stat:"c", pass:{members:0.01,msg:"They join."}, fail:{msg:"They try the Methodists."}} }
 ];
 
+// ---------- A GENEROUS GIFT ----------
+// Fires once a game, the first time Funds drop below `below` (a fraction of a healthy year's reserves) in or after
+// `fromYear`. The 2008 and 2020 campaigns came close together, and this keeps a thin budget from ending the run at the finish line.
+DATA.windfall = { fromYear:1995, below:0.25, invented:true,
+  t:["A generous member is inspired to give","a significant gift to the operating","fund. Thanks be to God!"], fx:{budget:0.20,morale:3} };
+
 // ---------- PRESBYTERY TRADES ----------
 DATA.presbytery = [
-  { t:["Lend an associate pastor to a","struggling church for a year."], fx:{part:-8,members:0.03,msg:"They come back with friends."} },
-  { t:["Fund a Presbytery grant."], fx:{budget:0.06,morale:-4,msg:"They ask for it every year."} },
-  { t:["Host the Presbytery meeting."], fx:{budget:-0.03,morale:6,msg:"Your elders step up to host beautifully."} },
-  { t:["Send twenty volunteers to a new","church to help them organize their","new ministry."], fx:{part:-6,morale:5,members:0.01} },
-  { t:["Serve as chair of the Commission","on Ministry, again."], fx:{stam:-3,morale:3,budget:0.02} }
+  { t:["Lend an associate pastor to a","struggling church for a year."], fx:{part:-6,stam:-1,energy:-10,members:0.02,msg:"They come back with friends."}, decline:{morale:-2} },
+  { t:["Fund a Presbytery grant."], fx:{budget:-0.06,morale:4,msg:"They ask for it every year."}, decline:{morale:-2} },
+  { t:["Host the Presbytery meeting."], fx:{budget:-0.03,morale:6,msg:"Your elders step up to host beautifully."}, decline:{morale:-2} },
+  { t:["Send twenty volunteers to a new","church to help them organize their","new ministry."], fx:{part:-6,morale:6,energy:-10,msg:"They come home fired up."}, decline:{morale:-2} },
+  { t:["Serve as chair of the Commission","on Ministry, again."], fx:{stam:-3,morale:4,msg:"Session is proud. You are tired."}, decline:{morale:-1} }
 ];
-DATA.presbyteryFact = ["A Presbytery is the regional body of","Presbyterian churches."];
+DATA.presbyteryFact = ["A Presbytery is the regional body of","Presbyterian churches. Its member","churches share pastors, money and","help with one another."];
 
 // ---------- AILMENTS, DEPARTURES ----------
-DATA.ailments = ["Committee Fatigue","Lost Voice","Casserole Overload","Called to Private Equity","Bulletin Burnout","Too Many Potlucks"];
+DATA.ailments = ["Committee Fatigue","Laryngitis","Casserole Overload","Golf Elbow","Bulletin Burnout","Too Many Potlucks"];
 DATA.departures = ["has accepted a call to Honolulu.","has accepted a call to Richmond.","has started a brewery instead.","has accepted a call to Iowa.","has moved to Florida.","has gone back to seminary."];
 
 // ---------- GAME OVER ----------
