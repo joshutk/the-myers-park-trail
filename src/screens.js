@@ -347,7 +347,7 @@ SC.event = {
     if(ev.hugh) G.draw(ART.hugh,540,74,3);
     const ty=y+8;
     if(this.result){ const ry=G.lines(this.result,50,ty,C.RESULT,T.M,20);
-      const items=[{label:"Continue",fn:()=>E.go(this.next)}]; if(ev.page||ev.invented) items.push({label:"Did you know?",fn:()=>E.go("fact",{lines:ev.fact||ev.t,page:ev.page,invented:ev.invented,paras:!!ev.fact,next:this.next})});
+      const items=[{label:"Continue",fn:()=>E.go(this.next)}]; if(ev.fact||ev.invented) items.push({label:"Did you know?",fn:()=>E.go("fact",{lines:ev.fact||ev.t,page:ev.page,invented:ev.invented,paras:!!ev.fact,next:this.next})});
       E.menu(items,50,Math.min(ry+6,306),280,{rowH:30}); }
     else if(ev.choice){ E.menu(ev.choice.map(c=>({label:c.label,fn:()=>{ this.result = c.check? this.resolveCheck(c.check) : applyFx(c.fx,{outreach:true}); if(!this.result.length) this.result=["Noted."]; }})),50,ty,500,{rowH:30}); }
   },
@@ -428,7 +428,7 @@ SC.finale = {
   // SPD/FINISH set the journey: FINISH/SPD seconds of driving before the fork (~59s = a long trip).
   // SPAWN_AHEAD sits just beyond the top edge so cars slide on from off-screen (no mid-road pop-in);
   // SPAWN_STOP clears the traffic well before the fork so the decision is calm.
-  ANCHOR:{x:196,y:330}, HALFW:118, LAT:74, SPD:100, FINISH:5900, SLIDE:260, SPAWN_AHEAD:620, SPAWN_STOP:650,
+  ANCHOR:{x:196,y:330}, HALFW:118, LAT:74, SPD:100, FINISH:5900, FADE:70, SPAWN_AHEAD:620, SPAWN_STOP:650,
   LANE:0.5, HITU:0.42,  // cars sit in lanes at |u|=LANE, well inside the bus's +-1 reach; a small lean toward the open lane clears them (forgiving hitbox)
   enter(){
     this.phase="intro"; this.t=0; this.dist=0; this.u=0; this.steer=0; this.bumps=0; this.flash=0;
@@ -496,8 +496,8 @@ SC.finale = {
     const gap=this.FINISH-this.dist, settled=(this.phase==="choose"||this.phase==="exit"||this.phase==="arrive");
     if(settled){ if(ROAD_IMG_READY) G.ctx.drawImage(ROAD_IMG,0,0,640,400); else this.drawRoad(); }
     else { this.drawRoad();
-      // crossfade the painted intersection in at its ALIGNED position (not sliding along the road axis, which left a seam against the procedural road)
-      if(ROAD_IMG_READY && gap<this.SLIDE){ const a=Math.max(0,Math.min(1,1-gap/this.SLIDE)), x=G.ctx; x.save(); x.globalAlpha=a; x.drawImage(ROAD_IMG,0,0,640,400); x.restore(); } }
+      // crossfade the painted intersection in at its ALIGNED position (not sliding along the road axis, which left a seam against the procedural road). FADE keeps the blend short so the two road shapes don't ghost for long.
+      if(ROAD_IMG_READY && gap<this.FADE){ const a=Math.max(0,Math.min(1,1-gap/this.FADE)), x=G.ctx; x.save(); x.globalAlpha=a; x.drawImage(ROAD_IMG,0,0,640,400); x.restore(); } }
     // destination labels at the branch tips while choosing
     if(this.phase==="choose"){ this.drawAim();
       const tip=k=>({x:this.J.x+this.BR[k].x*118,y:this.J.y+this.BR[k].y*118});

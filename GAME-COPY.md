@@ -289,10 +289,13 @@ Each landmark shows a short scene, then an optional "Did you know?" card. Buildi
 Events interrupt the drive. Each shows a year and a prompt; some give choices, some test a pastor stat, and most offer a "Did you know?" card afterward. Events marked *(invented)* show the note "This one we made up."
 
 **1927** — Your call committee sits scattered in your Selma church to blend in. You spot them right away. *(p.11)*
+**Did you know?:** The committee seeking to call MPPC's first pastor visited their pick as his church in Selma, Alabama. Apparently, Edgar Gammon spotted them right away, confronting them after the service.
 
 **1927** — Your first budget forgot to include fire insurance, calendars and music. Whoops. *(p.30)*
+**Did you know?:** The founders of our church didn't have the benefit of a "parent church" in the typical sense, and in some ways were learning on the job. 
 
 **1928** — Stone keeps walking off the building site at night. You hire a night watchman. *(p.34)*
+**Did you know?:** It took a lot of stone, and a lot of mule cart trips hauling it down from a quarry near the country club, to build the church. We presume some folks found our stone as beautiful as we did and decided to abscond with it.
 
 **1929** — Session signs a $125,000 mortgage in June. The stock market crashes in October. *(p.43-45)*
 **Did you know?:** The Wall Street crash of October 1929 wiped out fortunes and tipped the United States into the Great Depression. The church had just signed a mortgage on its new Sanctuary, and Charlotte's banks and givers were badly hurt in the years that followed.
@@ -308,11 +311,13 @@ Events interrupt the drive. Each shows a year and a prompt; some give choices, s
 **1932** — A church in Richmond tries to call you away. *(Gravitas test — pass: "You stay. The Session exhales." / fail: "You stay, but they got nervous.")* *(p.54)*
 
 **1937** — Session rules that men may remove their suit coats in summer worship. *(p.123)*
+**Did you know?:** Church was a very formal affair in the early days of the church. While we were unable to find any written dress code, we do find it interesting that the question of men's suit coats was a question put before the Session of the church.
 
 **1942** — The church is named a civil-defense welfare station. *(p.81)*
 **Did you know?:** After the United States entered the Second World War in December 1941, cities built civil-defense networks and named buildings as welfare and shelter stations in case of attack. Churches across the country took on home-front and relief roles while many of their members served overseas.
 
-**1945** — A Methodist neighbor fires a homemade mortar at the church and misses. The only known Methodist attack on the Presbyterians. *(p.99-101)*
+**1945** — A Methodist neighbor fires a homemade mortar at the church and misses. *(p.99-101)*
+**Did you know?:** Our neighbor at 1543 Queens Road had just returned from WWII with specific skills it seems he needed to continue to hone. His homemade mortar round remains the only known Methodist attack on the Presbyterians. 
 
 **1948** — Polio summer. Parents keep children home and attendance hits the lowest ebb in church history. *(p.97)*
 **Did you know?:** Polio epidemics swept the United States nearly every summer in the 1940s and 1950s, striking children hardest and leaving some paralyzed. Frightened parents kept children away from crowds -- pools, theaters, and churches -- until a vaccine finally arrived in the mid-1950s.
@@ -327,6 +332,7 @@ Events interrupt the drive. Each shows a year and a prompt; some give choices, s
 **Did you know?:** In 1951 Myers Park sent roughly three hundred of its own members off to help organize Trinity Presbyterian Church. The congregation's twenty-fifth-anniversary campaign had deliberately set money aside to help start new churches across Charlotte. · Trinity was one of several daughter churches Myers Park helped begin. *(p.114)*
 
 **1952** — A million-dollar bequest is split among five charities, the church included. Session sends half to benevolences. *(p.123)*
+**Did you know?:** From the earliest days of the church, the leaders were keen to support and invest in the growing city of Charlotte. 
 
 **1955** — Presbytery meets at MPPC and votes against reunion. Your own elders speak on both sides. *(Gravitas test — pass: "You keep the peace.")* *(p.128)*
 **Did you know?:** American Presbyterians split into northern and southern churches in 1861, during the Civil War. Reunion was debated for decades and voted down more than once before the two bodies finally rejoined as the PC(USA) in 1983.
@@ -348,17 +354,22 @@ Events interrupt the drive. Each shows a year and a prompt; some give choices, s
 **Did you know?:** The mansion in Myers Park was the Charlotte home of tobacco and electric-power magnate James Buchanan Duke, who enlarged it to some forty-five rooms and signed the papers creating The Duke Endowment there in 1924. After passing through several owners it was restored in the 1990s and today operates as a historic inn.
 
 **1970** — The youth "preachernap" the associate pastor from the Putt-Putt course. *(p.160)*
+**Did you know?:** It's a true story: A group of MPPC Youth abducted their youth pastor and stuff him in a car, presumably driven by a parent accomplice, driving around town before getting him out to see a big sign reading: "We love you, Chuckie."
 
 **1975** — A purse thief keeps making off with money from the choir room. Eventually the locks are changed. *(p.183)*
+**Did you know?:** Thou shalt not steal.
 
 **1977** — You speak up for clemency for the Wilmington Ten. Session holds a heated meeting, and a few members withhold their pledges in protest. *(Gravitas test — pass: "You hear everyone out. They stay.")* *(p.204)*
 **Did you know?:** The Wilmington Ten -- nine young Black men and one white woman, led by civil-rights organizer Ben Chavis -- were wrongfully convicted on arson and conspiracy charges after 1971 racial unrest in Wilmington, North Carolina. A federal court overturned the convictions in 1980, and the state formally pardoned the group in 2012.
 
-**1982** — So many cars park on the neighbors' streets that the police chief writes to the Session: "The tow-away signs mean what they say." Parking continues to be challening. *(p.232)*
+**1982** — So many cars park on the neighbors' streets that the police chief writes to the Session: "The tow-away signs mean what they say." Parking continues to be challenging. *(p.232)*
+**Did you know?:** Many solutions have been proposed to alleviate the parking situation over the years. The most serious and best attempt, providing hundreds of spots at the Outreach Center, has been said to be "not close enough."
 
 **1985** — A nine-year-old writes Session asking for a gym. Session prices it out and defers to the next building campaign. *(p.233-234)*
+**Did you know?:** When you write a note to Session, they read it!
 
-**1987** — You are installed by a vote of 619 to 2. You wonder about the two. *(p.239)*
+**1987** — You are called to MPPC by a vote of 619 to 2. You wonder about the two. *(p.239)*
+**Did you know?:** Most congregational votes are unanimous, but for reasons lost to time, this one was not.
 
 **1989** — Hurricane Hugo. Trees down, power out for weeks, and the church holds a relief breakfast in the gym. *(p.258-260)*
 **Did you know?:** Hurricane Hugo struck the Carolina coast as a Category 4 storm in September 1989 and, unusually, stayed powerful far inland. It battered Charlotte through the night, downing tens of thousands of trees and cutting power across the city for weeks.
@@ -374,8 +385,9 @@ Events interrupt the drive. Each shows a year and a prompt; some give choices, s
 **1996** — You preach from the floor instead of the pulpit. The Charlotte Observer writes about the departure in decorum. *(Preaching test)* *(p.286)*
 
 **2002** — The Celebrate service launches on tarps in the gym. Three hundred people show up. *(p.312-314)*
+**Did you know?:** The Celebrate service began not at the direction of a Pastor, rather, it began during an interim period when there was no head of staff pastor at all. 
 
-**2008** — It's the Great Recession! You need $1.6M in December. Cut the free coffee to save $17,000? *(p.339-340)*
+**2008** — It's the Great Recession :( You need $1.6M in December. Cut the free coffee to save $17,000? *(p.339-340)*
 - Cut the coffee → "We're less caffeinated, but outreach funding is not cut."
 - Keep the coffee
 **Did you know?:** In December 2008, as the financial crisis unfolded, the church still needed one point six million dollars for its annual budget. One cost-cutting idea on the table was to stop giving away coffee, saving about seventeen thousand dollars a year. · Through it all, the church held the line to protect its outreach support.
@@ -399,6 +411,7 @@ Events interrupt the drive. Each shows a year and a prompt; some give choices, s
 **Did you know?:** The World Health Organization declared COVID-19 a pandemic in March 2020, and gatherings of every kind shut down. Churches moved worship online almost overnight -- a single Sunday might have a few dozen people in the building and hundreds more watching from home.
 
 **2022** — The new organist plays so loudly he knocks pictures off the walls. *(p.411)*
+**Did you know?:** Tom Robak began as our organist in 2022, and during a particularly robust practice session, rattled the walls of the chancel so much the photos on the other side slipped off of their nails and crashed to the floor.
 
 **2024** — Hurricane Helene devastates much of western North Carolina. The church houses displaced volunteers and sends $125,000 in relief. *(p.415-416)*
 **Did you know?:** Hurricane Helene came ashore in Florida in late September 2024 and pushed inland, dropping catastrophic rain on the southern Appalachians. Western North Carolina around Asheville was hit especially hard, and churches across the state sent volunteers and relief.
@@ -411,12 +424,16 @@ Events interrupt the drive. Each shows a year and a prompt; some give choices, s
 **Did you know?:** Hugh McManaway was a Charlotte eccentric who for years stood at Providence and Queens Roads, near the church, cheerfully 'directing' the traffic with a towel tucked under his arm. A bronze statue of him was placed at the intersection in 2000, and neighbors still dress it up for weddings and graduations.
 
 **A family arrives for a funeral. Wrong church. The Baptists are down the street.** *(p.250)*
+**Did you know?:** Our church is often confused for other churches in the neighborhood.
 
 **Groomsmen arrive for a wedding. Wrong church. The Methodists are through the hedge.** *(p.250)*
+**Did you know?:** Our church is often confused for Myers Park United Methodist. We even have similar stonework!
 
 **Wednesday supper is chicken tetrazzini again.** *(p.289)*
+**Did you know?:** We don't know what the problem is here, really.
 
 **One of the old huts is towed off to Freedom Park.** *(p.139)*
+**Did you know?:** When the church was constructing the education and fellowship buildings (C and D buildings), they had to move the church huts that used to be on that part of the lot. One hut was given to the Junior League, who had it towed over near Freedom Park to serve as their office and gathering space. It's still in use today.
 
 ### Invented events (each shows "This one we made up")
 
