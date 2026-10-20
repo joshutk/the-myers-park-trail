@@ -89,6 +89,7 @@ const Sound = {
   good(){ this.tone(660,0.08); this.tone(880,0.1,this.ctx?this.ctx.currentTime+0.09:0); },
   bad(){ this.tone(220,0.15); this.tone(180,0.2,this.ctx?this.ctx.currentTime+0.14:0); },
   catchCard(){ this.tone(990,0.05); },
+  firework(){ const t=this.ctx?this.ctx.currentTime:0; this.tone(140,0.05,t,"square"); this.tone(760+Math.random()*420,0.16,t+0.03,"triangle"); },
   hymn(){ if(!this.ctx||!this.level) return; const bpm=96; let t=this.ctx.currentTime+0.05, total=0.05; DATA.hymn.forEach(([n,b])=>{ const f=440*Math.pow(2,(n-69)/12); const d=b*60/bpm; this.tone(f,d*0.9,t,"triangle"); t+=d; total+=d; });
     // hush the looping background music while the fanfare plays, so the two tunes don't overlap (and the loop doesn't bleed into the next screen on top of it)
     if(this.musicOn){ if(this.musicTimer) clearTimeout(this.musicTimer); this._killMusic(); this.musicTimer=setTimeout(()=>this._musicStep(), total*1000+800); } },

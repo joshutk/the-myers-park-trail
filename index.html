@@ -921,6 +921,7 @@ const Sound = {
   good(){ this.tone(660,0.08); this.tone(880,0.1,this.ctx?this.ctx.currentTime+0.09:0); },
   bad(){ this.tone(220,0.15); this.tone(180,0.2,this.ctx?this.ctx.currentTime+0.14:0); },
   catchCard(){ this.tone(990,0.05); },
+  firework(){ const t=this.ctx?this.ctx.currentTime:0; this.tone(140,0.05,t,"square"); this.tone(760+Math.random()*420,0.16,t+0.03,"triangle"); },
   hymn(){ if(!this.ctx||!this.level) return; const bpm=96; let t=this.ctx.currentTime+0.05, total=0.05; DATA.hymn.forEach(([n,b])=>{ const f=440*Math.pow(2,(n-69)/12); const d=b*60/bpm; this.tone(f,d*0.9,t,"triangle"); t+=d; total+=d; });
     // hush the looping background music while the fanfare plays, so the two tunes don't overlap (and the loop doesn't bleed into the next screen on top of it)
     if(this.musicOn){ if(this.musicTimer) clearTimeout(this.musicTimer); this._killMusic(); this.musicTimer=setTimeout(()=>this._musicStep(), total*1000+800); } },
@@ -1111,7 +1112,9 @@ SC.about = {
 SC.leaderboard = {
   enter(a){ this.hi=a&&a.hi!=null?a.hi:-1; },
   draw(){ G.clear(C.BG); G.box2(80,24,480,352,C.PANEL,C.FRAME); G.ctext("THE TOP TEN",320,40,C.TITLE,T.XL);
-    const sc=Store.scores(); sc.slice(0,10).forEach((s,i)=>{ const col=i===this.hi?C.TITLE:C.TEXT; G.text((i+1<10?" ":"")+(i+1)+". "+s.n+"   "+(s.p||""),112,84+i*26,col,T.L); G.rtext(String(s.v),528,84+i*26,i===this.hi?C.TITLE:C.RESULT,T.L); });
+    G.text("Initials",150,70,C.GOLD_PALE,T.M); G.text("Played as",238,70,C.GOLD_PALE,T.M); G.rtext("Score",528,70,C.GOLD_PALE,T.M);
+    G.rect(100,86,440,1,C.GOLD_INK);
+    const sc=Store.scores(); sc.slice(0,10).forEach((s,i)=>{ const col=i===this.hi?C.TITLE:C.TEXT; G.text((i+1<10?" ":"")+(i+1)+". "+s.n+"   "+(s.p||""),112,96+i*26,col,T.L); G.rtext(String(s.v),528,96+i*26,i===this.hi?C.TITLE:C.RESULT,T.L); });
     E.pressBar("Tap to return",()=>E.go("title")); },
   key(k){ E.keyMenu(k); }
 };
@@ -1387,7 +1390,7 @@ SC.finale = {
   // SPAWN_AHEAD sits just beyond the top edge so cars slide on from off-screen (no mid-road pop-in);
   // SPAWN_STOP clears the traffic well before the fork so the decision is calm.
   ANCHOR:{x:196,y:330}, HALFW:118, LAT:74, SPD:100, FINISH:5900, SLIDE:260, SPAWN_AHEAD:620, SPAWN_STOP:650,
-  LANE:0.5, HITU:0.6,  // cars sit in lanes at |u|=LANE, well inside the bus's +-1 reach; a clear weave to the far lane always misses
+  LANE:0.5, HITU:0.42,  // cars sit in lanes at |u|=LANE, well inside the bus's +-1 reach; a small lean toward the open lane clears them (forgiving hitbox)
   enter(){
     this.phase="intro"; this.t=0; this.dist=0; this.u=0; this.steer=0; this.bumps=0; this.flash=0;
     this.cars=[]; this.cones=[]; this.spawnW=0; this.coneNext=0; this.wrong=false; this.choice=null; this.aim="upperRight";
@@ -1454,7 +1457,8 @@ SC.finale = {
     const gap=this.FINISH-this.dist, settled=(this.phase==="choose"||this.phase==="exit"||this.phase==="arrive");
     if(settled){ if(ROAD_IMG_READY) G.ctx.drawImage(ROAD_IMG,0,0,640,400); else this.drawRoad(); }
     else { this.drawRoad();
-      if(ROAD_IMG_READY && gap<this.SLIDE){ const g=Math.max(0,gap); G.ctx.drawImage(ROAD_IMG, this.AU.x*g, this.AU.y*g, 640,400); } }
+      // crossfade the painted intersection in at its ALIGNED position (not sliding along the road axis, which left a seam against the procedural road)
+      if(ROAD_IMG_READY && gap<this.SLIDE){ const a=Math.max(0,Math.min(1,1-gap/this.SLIDE)), x=G.ctx; x.save(); x.globalAlpha=a; x.drawImage(ROAD_IMG,0,0,640,400); x.restore(); } }
     // destination labels at the branch tips while choosing
     if(this.phase==="choose"){ this.drawAim();
       const tip=k=>({x:this.J.x+this.BR[k].x*118,y:this.J.y+this.BR[k].y*118});
@@ -1499,8 +1503,26 @@ SC.finale = {
   keyup(k){ if(k==="ArrowLeft"&&this.steer<0) this.steer=0; if(k==="ArrowRight"&&this.steer>0) this.steer=0; }
 };
 SC.win = {
-  enter(){ S.reached2026=true; S.year=2026; Sound.hymn(); this.t=0; Store.stat("wins"); track("session_end",endRow("win")); },
-  draw(dt){ this.t+=dt; drawSky(0,250,false); G.rect(0,250,640,150,C.GROUND); G.rect(0,250,640,3,C.SAGE); drawChurch(300,118,2); G.draw(ART.bus,40+Math.min(120,this.t*60),234,2);
+  enter(){ S.reached2026=true; S.year=2026; Sound.hymn(); this.t=0; this.fw=[]; this.sp=[]; this.spawnT=0.25; Store.stat("wins"); track("session_end",endRow("win")); },
+  FWCOL:[C.CLAY,C.CLAY_INK,C.PLUM,C.HARBOR_INK,C.SAGE_INK,C.PLUM_INK,C.GOLD_INK],
+  // 8-bit fireworks in the sky: rockets rise from the ground line and burst into a ring of blocky sparks that arc down under gravity and fade
+  fwUpdate(dt){ dt=Math.min(dt||0,0.05);
+    this.spawnT-=dt;
+    if(this.spawnT<=0){ this.fw.push({x:50+Math.random()*540,y:250,ty:96+Math.random()*96,vy:-(150+Math.random()*55),col:pick(this.FWCOL)}); this.spawnT=0.45+Math.random()*0.7; }
+    this.fw=this.fw.filter(r=>{ r.y+=r.vy*dt; if(r.y<=r.ty){ this.burst(r); return false; } return true; });
+    this.sp=this.sp.filter(s=>{ s.life-=dt; s.x+=s.vx*dt; s.y+=s.vy*dt; s.vy+=170*dt; s.vx*=0.985; return s.life>0 && s.y<250; }); },
+  burst(r){ const n=18+((Math.random()*10)|0), sp=64+Math.random()*44;
+    for(let i=0;i<n;i++){ const a=(i/n)*6.2832, v=sp*(0.55+Math.random()*0.6);
+      this.sp.push({x:r.x,y:r.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:0.7+Math.random()*0.55,col:r.col}); }
+    this.sp.push({x:r.x,y:r.y,vx:0,vy:0,life:0.12,col:C.PAPER,flash:true});
+    if(Math.random()<0.75) Sound.firework(); },
+  fwDraw(){
+    for(const r of this.fw){ G.rect((r.x-1)|0,(r.y-2)|0,3,6,r.col); G.rect((r.x-1)|0,(r.y+4)|0,3,4,C.GOLD_INK); }
+    for(const s of this.sp){ if(s.flash){ G.rect((s.x-4)|0,(s.y-4)|0,9,9,C.PAPER); continue; }
+      const sz=s.life>0.28?3:2, c=s.life>0.22?s.col:C.GOLD_INK; G.rect((s.x-(sz>>1))|0,(s.y-(sz>>1))|0,sz,sz,c); } },
+  draw(dt){ this.t+=dt; drawSky(0,250,false);
+    this.fwUpdate(dt); this.fwDraw();
+    G.rect(0,250,640,150,C.GROUND); G.rect(0,250,640,3,C.SAGE); drawChurch(300,118,2); G.draw(ART.bus,40+Math.min(120,this.t*60),234,2);
     G.rect(0,0,640,84,C.PANEL); G.ctext("CENTENNIAL SUNDAY, 2026",320,12,C.TITLE,T.XL); G.ctext("You made it. One hundred years.",320,44,C.TEXT,T.M);
     G.ctext(S.finaleWrong?"You took the scenic route by Freedom Park. Grace abounds.":(S.homecoming?"You drove the bus straight home without a scratch.":"The bus rolled up with a few more dings and dents."),320,64,C.RESULT,T.M);
     const sc=score(); G.box2(20,300,600,96,C.PANEL,C.FRAME);
